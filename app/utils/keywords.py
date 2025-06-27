@@ -1,5 +1,8 @@
 # Listas de palabras clave: saludos, urgencias, cancelación, etc. 
 
+import re
+import unicodedata
+
 SALUDOS = [
     'hola', 'buenos días', 'buenas tardes', 'buenas noches', 'buen dia', 'buenas', 'saludos'
 ]
@@ -30,4 +33,20 @@ PREGUNTAS_UBICACION = [
 
 PREGUNTAS_GRATIS = [
     'es gratis', 'sin costo', 'no cobran', 'no tiene costo', 'gratuito'
-] 
+]
+
+def normalize_text(text):
+    text = text.lower()
+    text = ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+def match_keywords(text, keywords):
+    norm_text = normalize_text(text)
+    for kw in keywords:
+        norm_kw = normalize_text(kw)
+        # Coincidencia exacta de palabra o frase, usando regex de palabra completa
+        pattern = r'\b' + re.escape(norm_kw) + r'\b'
+        if re.search(pattern, norm_text):
+            return True
+    return False 

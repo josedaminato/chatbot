@@ -1,15 +1,8 @@
 # Funciones para consultar e insertar datos en la base de datos 
 
-import psycopg2
+import os
+from app.db.postgres import get_connection
 from datetime import datetime
-
-def get_connection():
-    return psycopg2.connect(
-        dbname="asistente_salud",
-        user="asistente_user",
-        password="tu_password_segura",
-        host="localhost"
-    )
 
 def get_last_appointment(phone_number):
     conn = get_connection()

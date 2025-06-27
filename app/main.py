@@ -1,5 +1,7 @@
-from flask import Flask, jsonify
 import logging
+from app.utils.logging_config import setup_logging
+setup_logging()
+from flask import Flask, jsonify
 from .db.init_db import init_db
 from .webhook import webhook_bp
 from .setup_routes import setup_bp

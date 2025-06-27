@@ -2,7 +2,8 @@ from flask import Blueprint, request
 from twilio.twiml.messaging_response import MessagingResponse
 from app.utils.keywords import (
     SALUDOS, CANCEL_KEYWORDS, CONFIRM_KEYWORDS, URGENCY_KEYWORDS,
-    PREGUNTAS_OBRA_SOCIAL, PREGUNTAS_COSTO, PREGUNTAS_UBICACION, PREGUNTAS_GRATIS
+    PREGUNTAS_OBRA_SOCIAL, PREGUNTAS_COSTO, PREGUNTAS_UBICACION, PREGUNTAS_GRATIS,
+    match_keywords, normalize_text
 )
 from app.db.queries import (
     get_last_appointment, insert_pending_appointment, get_pending_appointment, delete_pending_appointment,
@@ -13,8 +14,10 @@ from app.services.email_service import send_email_notification
 from app.services.whatsapp_service import send_whatsapp_message
 from app.services.image_handler import save_image_and_notify
 from app.utils.config import get_clinic_name_and_email, WHATSAPP_PROVIDER, PLAN
+from app.utils.validators import is_valid_name, is_valid_phone, is_valid_date, is_valid_image
 import re
 from datetime import datetime, timedelta
+from app.handlers import greeting_handler, appointment_handler, date_handler, time_handler, patient_name_handler, cancellation_handler, confirmation_handler, urgency_handler, image_handler, faq_handler, default_handler
 
 webhook_bp = Blueprint('webhook', __name__)
 
@@ -47,6 +50,9 @@ def handle_time_response(phone_number, incoming_msg):
 def handle_patient_name(phone_number, incoming_msg):
     resp = MessagingResponse()
     msg = resp.message()
+    if not is_valid_name(incoming_msg):
+        msg.body("El nombre ingresado no es válido. Por favor, ingresa solo letras y espacios.")
+        return resp
     msg.body("¡Turno reservado exitosamente! Te esperamos.")
     return resp
 
@@ -76,6 +82,10 @@ def handle_image_upload(phone_number, incoming_msg):
     resp = MessagingResponse()
     msg = resp.message()
     media_url = request.values.get('MediaUrl0')
+    filename = request.values.get('MediaFileName0', 'archivo.jpg')
+    if not is_valid_image(filename):
+        msg.body("Solo se permiten imágenes JPG o PNG.")
+        return str(resp)
     success = save_image_and_notify(phone_number, None, media_url)
     clinic_name, _ = get_clinic_name_and_email()
     if success:
@@ -87,62 +97,59 @@ def handle_image_upload(phone_number, incoming_msg):
 # --- ENDPOINT ---
 @webhook_bp.route('/webhook', methods=['POST'])
 def webhook():
-    incoming_msg = request.values.get('Body', '').lower()
+    incoming_msg = request.values.get('Body', '')
     phone_number = request.values.get('From', '')
+    norm_msg = normalize_text(incoming_msg)
+    # Validar teléfono
+    if not is_valid_phone(phone_number):
+        resp = MessagingResponse()
+        msg = resp.message()
+        msg.body("El número de teléfono no es válido. Por favor, verifica el formato.")
+        return str(resp)
     # Saludo
-    if any(saludo in incoming_msg for saludo in SALUDOS):
-        return str(handle_greeting(phone_number, incoming_msg))
+    if match_keywords(norm_msg, SALUDOS):
+        return str(greeting_handler.handle(phone_number, incoming_msg))
     # Cancelación
-    if any(word in incoming_msg for word in CANCEL_KEYWORDS):
-        return str(handle_cancellation(phone_number, incoming_msg))
+    if match_keywords(norm_msg, CANCEL_KEYWORDS):
+        return str(cancellation_handler.handle(phone_number, incoming_msg))
     # Confirmación
-    if any(word in incoming_msg for word in CONFIRM_KEYWORDS):
-        return str(handle_confirmation(phone_number, incoming_msg))
+    if match_keywords(norm_msg, CONFIRM_KEYWORDS):
+        return str(confirmation_handler.handle(phone_number, incoming_msg))
     # Urgencia
-    if any(word in incoming_msg for word in URGENCY_KEYWORDS):
-        return str(handle_urgency(phone_number, incoming_msg))
+    if match_keywords(norm_msg, URGENCY_KEYWORDS):
+        return str(urgency_handler.handle(phone_number, incoming_msg))
     # Imagen
     if request.values.get('MediaUrl0'):
-        return str(handle_image_upload(phone_number, incoming_msg))
+        media_url = request.values.get('MediaUrl0')
+        filename = request.values.get('MediaFileName0', 'archivo.jpg')
+        return str(image_handler.handle(phone_number, incoming_msg, media_url, filename))
     # Preguntas frecuentes (ejemplo)
-    if any(p in incoming_msg for p in PREGUNTAS_OBRA_SOCIAL):
-        resp = MessagingResponse()
-        msg = resp.message()
-        clinic_name, _ = get_clinic_name_and_email()
-        msg.body(f"{clinic_name}: Sí, trabajamos con las siguientes obras sociales: [Lista de obras sociales]. ¿Te gustaría agendar un turno?")
-        return str(resp)
-    if any(p in incoming_msg for p in PREGUNTAS_COSTO):
-        resp = MessagingResponse()
-        msg = resp.message()
-        clinic_name, _ = get_clinic_name_and_email()
-        msg.body(f"{clinic_name}: El costo de la consulta es de $XXXX. ¿Deseas agendar un turno?")
-        return str(resp)
-    if any(p in incoming_msg for p in PREGUNTAS_UBICACION):
-        resp = MessagingResponse()
-        msg = resp.message()
-        clinic_name, _ = get_clinic_name_and_email()
-        msg.body(f"{clinic_name}: Estamos ubicados en [Dirección de la clínica]. ¿Te gustaría agendar un turno?")
-        return str(resp)
-    if any(p in incoming_msg for p in PREGUNTAS_GRATIS):
-        resp = MessagingResponse()
-        msg = resp.message()
-        clinic_name, _ = get_clinic_name_and_email()
-        msg.body(f"{clinic_name}: Las consultas no son gratuitas. Si deseas saber el costo o agendar un turno, avísame.")
-        return str(resp)
+    if match_keywords(norm_msg, PREGUNTAS_OBRA_SOCIAL):
+        return str(faq_handler.handle('obra_social', phone_number, incoming_msg))
+    if match_keywords(norm_msg, PREGUNTAS_COSTO):
+        return str(faq_handler.handle('costo', phone_number, incoming_msg))
+    if match_keywords(norm_msg, PREGUNTAS_UBICACION):
+        return str(faq_handler.handle('ubicacion', phone_number, incoming_msg))
+    if match_keywords(norm_msg, PREGUNTAS_GRATIS):
+        return str(faq_handler.handle('gratis', phone_number, incoming_msg))
     # Solicitud de turno
-    if 'turno' in incoming_msg:
-        return str(handle_appointment_request(phone_number, incoming_msg))
+    if 'turno' in norm_msg:
+        return str(appointment_handler.handle(phone_number, incoming_msg))
     # Fecha (DD/MM/YYYY)
-    if re.search(r'(\d{2}/\d{2}/\d{4})', incoming_msg):
-        return str(handle_date_response(phone_number, incoming_msg))
+    fecha_match = re.search(r'(\d{2}/\d{2}/\d{4})', norm_msg)
+    if fecha_match:
+        fecha_str = fecha_match.group(1)
+        if not is_valid_date(fecha_str):
+            resp = MessagingResponse()
+            msg = resp.message()
+            msg.body("La fecha ingresada no es válida. Usa el formato DD/MM/YYYY.")
+            return str(resp)
+        return str(date_handler.handle(phone_number, incoming_msg))
     # Hora (HH:MM)
-    if re.search(r'\b([0-1][0-9]|2[0-3]):[0-5][0-9]\b', incoming_msg):
-        return str(handle_time_response(phone_number, incoming_msg))
+    if re.search(r'\b([0-1][0-9]|2[0-3]):[0-5][0-9]\b', norm_msg):
+        return str(time_handler.handle(phone_number, incoming_msg))
     # Nombre del paciente (simplificado)
-    if len(incoming_msg.split()) >= 2 and incoming_msg.replace(' ', '').isalpha():
-        return str(handle_patient_name(phone_number, incoming_msg))
+    if len(norm_msg.split()) >= 2 and norm_msg.replace(' ', '').isalpha():
+        return str(patient_name_handler.handle(phone_number, incoming_msg))
     # Respuesta por defecto
-    resp = MessagingResponse()
-    msg = resp.message()
-    msg.body("No entendí tu mensaje. ¿Podrías reformularlo?")
-    return str(resp) 
+    return str(default_handler.handle(phone_number, incoming_msg)) 

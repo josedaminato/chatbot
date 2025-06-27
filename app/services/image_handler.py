@@ -9,6 +9,7 @@ from app.services.email_service import send_email_with_attachment
 from app.utils.config import get_clinic_name_and_email
 from apscheduler.schedulers.background import BackgroundScheduler
 import psycopg2
+import logging
 
 UPLOADS_DIR = 'uploads'
 
@@ -46,7 +47,7 @@ def save_image_and_notify(phone_number, image_data=None, media_url=None):
         send_email_with_attachment(professional_email, subject, body, file_path)
         return True
     except Exception as e:
-        print(f"Error guardando imagen: {e}")
+        logging.error(f"Error guardando imagen: {e}")
         return False 
 
 def get_connection():

@@ -1,13 +1,4 @@
-import psycopg2
-print("¡Import OK!")
-
-def get_connection():
-    return psycopg2.connect(
-        dbname="asistente_salud",
-        user="asistente_user",
-        password="tu_password_segura",
-        host="localhost"
-    )
+from app.db.postgres import get_connection
 
 def init_db():
     conn = get_connection()
