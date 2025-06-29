@@ -2,6 +2,11 @@ import os
 import psycopg2
 
 def get_connection():
+    """Establece una conexión a la base de datos PostgreSQL usando variables de entorno.
+
+    Returns:
+        connection: Objeto de conexión psycopg2.
+    """
     return psycopg2.connect(
         dbname=os.getenv('POSTGRES_DB', 'asistente_salud'),
         user=os.getenv('POSTGRES_USER', 'asistente_user'),

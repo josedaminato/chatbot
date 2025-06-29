@@ -3,6 +3,15 @@ from app.utils.config import get_clinic_name_and_email
 from app.services.email_service import send_email_notification
 
 def handle(phone_number, incoming_msg):
+    """Procesa mensajes de urgencia, notifica por email y responde al paciente.
+
+    Args:
+        phone_number (str): Teléfono del paciente.
+        incoming_msg (str): Mensaje recibido.
+
+    Returns:
+        MessagingResponse: Respuesta Twilio.
+    """
     resp = MessagingResponse()
     msg = resp.message()
     msg.body("Lamento mucho lo que estás pasando. Voy a notificar al profesional para darte prioridad. ¿Te gustaría agendar lo antes posible?")

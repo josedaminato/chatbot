@@ -5,6 +5,11 @@ setup_bp = Blueprint('setup', __name__)
 
 @setup_bp.route('/setup', methods=['GET', 'POST'])
 def setup():
+    """Ruta para configurar nombre de la clínica y email profesional vía formulario HTML.
+
+    Returns:
+        str: Mensaje de éxito o formulario HTML.
+    """
     if request.method == 'POST':
         clinic_name = request.form.get('clinic_name')
         professional_email = request.form.get('professional_email')

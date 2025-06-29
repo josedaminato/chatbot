@@ -35,5 +35,21 @@ def init_db():
         file_path TEXT,
         upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS feedback (
+        id SERIAL PRIMARY KEY,
+        patient_name TEXT,
+        phone_number TEXT,
+        feedback_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        feedback_text TEXT
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        full_name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        role TEXT DEFAULT 'professional',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
     conn.commit()
     conn.close() 

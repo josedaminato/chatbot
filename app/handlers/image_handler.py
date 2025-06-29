@@ -4,6 +4,17 @@ from app.services.image_handler import save_image_and_notify
 from app.utils.config import get_clinic_name_and_email
 
 def handle(phone_number, incoming_msg, media_url, filename):
+    """Procesa la recepción de una imagen, valida y guarda el archivo.
+
+    Args:
+        phone_number (str): Teléfono del paciente.
+        incoming_msg (str): Mensaje recibido.
+        media_url (str): URL de la imagen recibida.
+        filename (str): Nombre del archivo recibido.
+
+    Returns:
+        MessagingResponse: Respuesta Twilio.
+    """
     resp = MessagingResponse()
     msg = resp.message()
     if not is_valid_image(filename):

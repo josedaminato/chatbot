@@ -2,6 +2,16 @@ from twilio.twiml.messaging_response import MessagingResponse
 from app.utils.config import get_clinic_name_and_email
 
 def handle(tipo, phone_number, incoming_msg):
+    """Responde preguntas frecuentes según el tipo solicitado.
+
+    Args:
+        tipo (str): Tipo de pregunta ('obra_social', 'costo', 'ubicacion', 'gratis').
+        phone_number (str): Teléfono del paciente.
+        incoming_msg (str): Mensaje recibido.
+
+    Returns:
+        MessagingResponse: Respuesta Twilio.
+    """
     resp = MessagingResponse()
     msg = resp.message()
     clinic_name, _ = get_clinic_name_and_email()

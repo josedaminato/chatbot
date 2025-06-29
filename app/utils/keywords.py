@@ -36,12 +36,29 @@ PREGUNTAS_GRATIS = [
 ]
 
 def normalize_text(text):
+    """Normaliza el texto a minúsculas, sin tildes y espacios simples.
+
+    Args:
+        text (str): Texto a normalizar.
+
+    Returns:
+        str: Texto normalizado.
+    """
     text = text.lower()
     text = ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
 def match_keywords(text, keywords):
+    """Busca coincidencias exactas de palabras clave en el texto normalizado.
+
+    Args:
+        text (str): Texto a analizar.
+        keywords (list): Lista de palabras/frases clave.
+
+    Returns:
+        bool: True si hay coincidencia, False si no.
+    """
     norm_text = normalize_text(text)
     for kw in keywords:
         norm_kw = normalize_text(kw)

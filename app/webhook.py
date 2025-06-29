@@ -7,7 +7,7 @@ from app.utils.keywords import (
 )
 from app.db.queries import (
     get_last_appointment, insert_pending_appointment, get_pending_appointment, delete_pending_appointment,
-    insert_appointment, mark_appointment_as_confirmed, cancel_appointment
+    insert_appointment, mark_appointment_as_confirmed, cancel_appointment, insert_feedback
 )
 from app.services.calendar_service import get_google_calendar_service, is_slot_available_in_calendar, create_calendar_event
 from app.services.email_service import send_email_notification
@@ -18,6 +18,8 @@ from app.utils.validators import is_valid_name, is_valid_phone, is_valid_date, i
 import re
 from datetime import datetime, timedelta
 from app.handlers import greeting_handler, appointment_handler, date_handler, time_handler, patient_name_handler, cancellation_handler, confirmation_handler, urgency_handler, image_handler, faq_handler, default_handler
+from app.db.postgres import get_connection
+from app.handlers.ai_handler import handle_with_ai
 
 webhook_bp = Blueprint('webhook', __name__)
 
@@ -97,15 +99,38 @@ def handle_image_upload(phone_number, incoming_msg):
 # --- ENDPOINT ---
 @webhook_bp.route('/webhook', methods=['POST'])
 def webhook():
+    """Endpoint principal del webhook de WhatsApp. Procesa mensajes entrantes y delega a los handlers.
+
+    Returns:
+        str: Respuesta Twilio serializada.
+    """
     incoming_msg = request.values.get('Body', '')
     phone_number = request.values.get('From', '')
     norm_msg = normalize_text(incoming_msg)
+    
     # Validar teléfono
     if not is_valid_phone(phone_number):
         resp = MessagingResponse()
         msg = resp.message()
         msg.body("El número de teléfono no es válido. Por favor, verifica el formato.")
         return str(resp)
+    
+    # --- FEEDBACK POST-TURNO ---
+    # Si el paciente responde y su último turno está marcado como followup_sent=1 y attended no es NULL, se considera feedback
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT patient_name FROM appointments WHERE phone_number = %s AND followup_sent = 1 AND appointment_date < NOW() ORDER BY appointment_date DESC LIMIT 1", (phone_number,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        patient_name = row[0]
+        insert_feedback(patient_name, phone_number, incoming_msg)
+        resp = MessagingResponse()
+        msg = resp.message()
+        msg.body("¡Gracias por tu mensaje! Tu opinión es muy valiosa para nosotros.")
+        return str(resp)
+    
+    # --- DETECCIÓN CON KEYWORDS (método tradicional) ---
     # Saludo
     if match_keywords(norm_msg, SALUDOS):
         return str(greeting_handler.handle(phone_number, incoming_msg))
@@ -123,7 +148,7 @@ def webhook():
         media_url = request.values.get('MediaUrl0')
         filename = request.values.get('MediaFileName0', 'archivo.jpg')
         return str(image_handler.handle(phone_number, incoming_msg, media_url, filename))
-    # Preguntas frecuentes (ejemplo)
+    # Preguntas frecuentes
     if match_keywords(norm_msg, PREGUNTAS_OBRA_SOCIAL):
         return str(faq_handler.handle('obra_social', phone_number, incoming_msg))
     if match_keywords(norm_msg, PREGUNTAS_COSTO):
@@ -151,5 +176,7 @@ def webhook():
     # Nombre del paciente (simplificado)
     if len(norm_msg.split()) >= 2 and norm_msg.replace(' ', '').isalpha():
         return str(patient_name_handler.handle(phone_number, incoming_msg))
-    # Respuesta por defecto
-    return str(default_handler.handle(phone_number, incoming_msg)) 
+    
+    # --- FALLBACK A IA ---
+    # Si no se detectó nada con keywords, usar IA para interpretar
+    return str(handle_with_ai(phone_number, incoming_msg)) 

@@ -7,8 +7,13 @@ from .webhook import webhook_bp
 from .setup_routes import setup_bp
 from .confirm_routes import confirm_bp
 from .scheduler import init_scheduler
+from .dashboard.auth import auth_bp
+from .dashboard.routes import dashboard_bp
+from .handlers.admin_handler import admin_bp
+from .utils.config import SECRET_KEY
 
 app = Flask(__name__)
+app.secret_key = SECRET_KEY
 
 # Inicializar base de datos
 init_db()
@@ -17,6 +22,9 @@ init_db()
 app.register_blueprint(webhook_bp)
 app.register_blueprint(setup_bp)
 app.register_blueprint(confirm_bp)
+app.register_blueprint(auth_bp)
+app.register_blueprint(dashboard_bp)
+app.register_blueprint(admin_bp)
 
 # Iniciar schedulers
 init_scheduler(app)
