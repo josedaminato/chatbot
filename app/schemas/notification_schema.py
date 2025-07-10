@@ -3,7 +3,7 @@ Schemas para notificaciones usando Pydantic
 Validaciones y documentación de estructuras de datos
 """
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from enum import Enum
 from datetime import datetime
@@ -28,14 +28,16 @@ class NotificacionBase(BaseModel):
     notification_type: TipoNotificacion = Field(..., description="Tipo de notificación")
     priority: Optional[str] = Field("normal", description="Prioridad de la notificación")
     
-    @validator('phone_number')
+    @field_validator('phone_number')
+    @classmethod
     def validate_phone_number(cls, v):
         """Valida formato de número de teléfono"""
         if not v or len(v) < 10:
             raise ValueError('Número de teléfono inválido')
         return v
     
-    @validator('message')
+    @field_validator('message')
+    @classmethod
     def validate_message(cls, v):
         """Valida que el mensaje no esté vacío"""
         if not v or len(v.strip()) == 0:
@@ -96,7 +98,8 @@ class RecordatorioSchema(BaseModel):
     patient_name: Optional[str] = Field(None, description="Nombre del paciente")
     message_template: str = Field(..., description="Plantilla del mensaje")
     
-    @validator('message_template')
+    @field_validator('message_template')
+    @classmethod
     def validate_template(cls, v):
         """Valida que la plantilla tenga las variables necesarias"""
         required_vars = ['{fecha}', '{hora}', '{nombre_clinica}']

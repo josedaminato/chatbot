@@ -3,7 +3,7 @@ Schemas para usuarios del dashboard usando Pydantic
 Validaciones y documentación de estructuras de datos
 """
 
-from pydantic import BaseModel, Field, validator, EmailStr
+from pydantic import BaseModel, Field, field_validator, EmailStr
 from typing import Optional
 from enum import Enum
 from datetime import datetime
@@ -27,7 +27,8 @@ class UsuarioBase(BaseModel):
     full_name: str = Field(..., description="Nombre completo")
     role: RolUsuario = Field(..., description="Rol del usuario")
     
-    @validator('username')
+    @field_validator('username')
+    @classmethod
     def validate_username(cls, v):
         """Valida formato de nombre de usuario"""
         if not v or len(v) < 3:
@@ -36,7 +37,8 @@ class UsuarioBase(BaseModel):
             raise ValueError('El nombre de usuario solo puede contener letras y números')
         return v.lower()
     
-    @validator('full_name')
+    @field_validator('full_name')
+    @classmethod
     def validate_full_name(cls, v):
         """Valida nombre completo"""
         if not v or len(v.strip()) < 2:
@@ -47,7 +49,8 @@ class UsuarioCreate(UsuarioBase):
     """Schema para crear un nuevo usuario"""
     password: str = Field(..., description="Contraseña del usuario", min_length=8)
     
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         """Valida fortaleza de la contraseña"""
         if len(v) < 8:
@@ -69,7 +72,8 @@ class UsuarioUpdate(BaseModel):
     status: Optional[EstadoUsuario] = None
     password: Optional[str] = Field(None, description="Nueva contraseña (opcional)")
     
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         """Valida fortaleza de la contraseña si se proporciona"""
         if v is not None:
@@ -124,7 +128,8 @@ class CambioPassword(BaseModel):
     current_password: str = Field(..., description="Contraseña actual")
     new_password: str = Field(..., description="Nueva contraseña")
     
-    @validator('new_password')
+    @field_validator('new_password')
+    @classmethod
     def validate_new_password(cls, v):
         """Valida fortaleza de la nueva contraseña"""
         if len(v) < 8:

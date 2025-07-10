@@ -3,7 +3,7 @@ Schemas para turnos usando Pydantic
 Validaciones y documentación de estructuras de datos
 """
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import date, time
 from enum import Enum
@@ -25,14 +25,16 @@ class TurnoBase(BaseModel):
     urgency_level: Optional[str] = Field(None, description="Nivel de urgencia")
     notes: Optional[str] = Field(None, description="Notas adicionales")
     
-    @validator('phone_number')
+    @field_validator('phone_number')
+    @classmethod
     def validate_phone_number(cls, v):
         """Valida formato de número de teléfono"""
         if not v or len(v) < 10:
             raise ValueError('Número de teléfono inválido')
         return v
     
-    @validator('appointment_date')
+    @field_validator('appointment_date')
+    @classmethod
     def validate_appointment_date(cls, v):
         """Valida que la fecha no sea en el pasado"""
         from datetime import date
@@ -61,9 +63,8 @@ class TurnoResponse(TurnoBase):
     created_at: str = Field(..., description="Fecha de creación")
     updated_at: Optional[str] = Field(None, description="Fecha de última actualización")
     
-    class Config:
-        """Configuración del schema"""
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "id": 1,
                 "phone_number": "+5491112345678",
@@ -77,6 +78,7 @@ class TurnoResponse(TurnoBase):
                 "updated_at": "2024-01-10T10:00:00Z"
             }
         }
+    }
 
 class TurnoListResponse(BaseModel):
     """Schema para lista de turnos"""
