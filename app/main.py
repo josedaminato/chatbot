@@ -1,41 +1,87 @@
+"""
+Aplicación principal del Asistente de Salud
+Inicialización de Flask y registro de rutas
+"""
+
+from flask import Flask
 import logging
-from app.utils.logging_config import setup_logging
-setup_logging()
-from flask import Flask, jsonify
-from .db.init_db import init_db
-from .webhook import webhook_bp
-from .setup_routes import setup_bp
-from .confirm_routes import confirm_bp
-from .scheduler import init_scheduler
-from .dashboard.auth import auth_bp
-from .dashboard.routes import dashboard_bp
-from .handlers.admin_handler import admin_bp
-from .utils.config import SECRET_KEY
+from app.config import (
+    SECRET_KEY, DEBUG, HOST, PORT, 
+    validate_config, CLINIC_NAME
+)
+from app.logging_config import setup_logging
+from app.routes import webhook_bp, dashboard_bp, api_bp
+from app.utils.error_handler import ErrorHandler
 
-app = Flask(__name__)
-app.secret_key = SECRET_KEY
+def create_app():
+    """
+    Factory function para crear la aplicación Flask
+    """
+    # Crear instancia de Flask
+    app = Flask(__name__)
+    
+    # Configurar aplicación
+    app.config['SECRET_KEY'] = SECRET_KEY
+    app.config['DEBUG'] = DEBUG
+    
+    # Configurar logging
+    logger = setup_logging()
+    
+    # Validar configuración
+    if not validate_config():
+        logger.warning("⚠️  Configuración incompleta. Algunas funciones pueden no funcionar correctamente.")
+    
+    # Registrar manejador global de errores
+    app.register_error_handler(Exception, ErrorHandler.handle_exception)
+    
+    # Registrar blueprints
+    app.register_blueprint(webhook_bp)
+    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+    app.register_blueprint(api_bp)
+    
+    # Ruta de bienvenida
+    @app.route('/')
+    def welcome():
+        return {
+            'message': f'Bienvenido a {CLINIC_NAME}',
+            'service': 'Asistente Virtual de Salud',
+            'version': '2.0.0',
+            'endpoints': {
+                'webhook': '/webhook',
+                'dashboard': '/dashboard',
+                'api': '/api/v1'
+            }
+        }
+    
+    # Ruta de health check general
+    @app.route('/health')
+    def health():
+        return {
+            'status': 'healthy',
+            'service': 'Asistente de Salud',
+            'clinic_name': CLINIC_NAME,
+            'timestamp': logging.time.time()
+        }
+    
+    logger.info(f"🚀 Aplicación {CLINIC_NAME} inicializada correctamente")
+    
+    return app
 
-# Inicializar base de datos
-init_db()
+def run_app():
+    """
+    Ejecutar la aplicación Flask
+    """
+    app = create_app()
+    
+    try:
+        app.run(
+            host=HOST,
+            port=PORT,
+            debug=DEBUG
+        )
+    except Exception as e:
+        logging.error(f"Error ejecutando la aplicación: {str(e)}")
+        raise
 
-# Registrar Blueprints
-app.register_blueprint(webhook_bp)
-app.register_blueprint(setup_bp)
-app.register_blueprint(confirm_bp)
-app.register_blueprint(auth_bp)
-app.register_blueprint(dashboard_bp)
-app.register_blueprint(admin_bp)
-
-# Iniciar schedulers
-init_scheduler(app)
-
-# Manejador global de errores
-@app.errorhandler(Exception)
-def handle_exception(e):
-    logging.exception("Error inesperado en la aplicación:")
-    return jsonify({
-        "error": "Ha ocurrido un error inesperado. Por favor, intenta nuevamente más tarde o contacta al soporte si el problema persiste."
-    }), 500
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True) 
+if __name__ == '__main__':
+    run_app() 
