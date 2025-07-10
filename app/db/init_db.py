@@ -52,4 +52,26 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
     conn.commit()
-    conn.close() 
+    conn.close()
+
+def create_conversation_state_table():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS conversation_state (
+            id SERIAL PRIMARY KEY,
+            phone_number VARCHAR(20) UNIQUE NOT NULL,
+            last_intent VARCHAR(50),
+            fecha VARCHAR(20),
+            hora VARCHAR(10),
+            nombre VARCHAR(100),
+            profesional VARCHAR(100),
+            especialidad VARCHAR(100),
+            last_update TIMESTAMP DEFAULT NOW()
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Llama a esta función en la inicialización de la base de datos
+create_conversation_state_table() 

@@ -35,4 +35,7 @@ def handle_exception(e):
     logging.exception("Error inesperado en la aplicación:")
     return jsonify({
         "error": "Ha ocurrido un error inesperado. Por favor, intenta nuevamente más tarde o contacta al soporte si el problema persiste."
-    }), 500 
+    }), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True) 

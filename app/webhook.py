@@ -13,7 +13,7 @@ from app.services.calendar_service import get_google_calendar_service, is_slot_a
 from app.services.email_service import send_email_notification
 from app.services.whatsapp_service import send_whatsapp_message
 from app.services.image_handler import save_image_and_notify
-from app.utils.config import get_clinic_name_and_email, WHATSAPP_PROVIDER, PLAN
+from app.utils.config import get_clinic_name_and_email, WHATSAPP_PROVIDER
 from app.utils.validators import is_valid_name, is_valid_phone, is_valid_date, is_valid_image
 import re
 from datetime import datetime, timedelta
@@ -119,7 +119,7 @@ def webhook():
     # Si el paciente responde y su último turno está marcado como followup_sent=1 y attended no es NULL, se considera feedback
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT patient_name FROM appointments WHERE phone_number = %s AND followup_sent = 1 AND appointment_date < NOW() ORDER BY appointment_date DESC LIMIT 1", (phone_number,))
+    c.execute("SELECT patient_name FROM appointments WHERE phone_number = %s AND followup_sent = TRUE AND appointment_date < NOW() ORDER BY appointment_date DESC LIMIT 1", (phone_number,))
     row = c.fetchone()
     conn.close()
     if row:

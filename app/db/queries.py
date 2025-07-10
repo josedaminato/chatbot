@@ -353,3 +353,52 @@ def get_recent_images(limit=10):
     except Exception as e:
         logging.error(f"Error getting recent images: {e}")
         return [] 
+
+# --- CONTEXTO CONVERSACIONAL ---
+def get_conversation_state(phone_number):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT last_intent, fecha, hora, nombre, profesional, especialidad 
+        FROM conversation_state WHERE phone_number = %s
+    """, (phone_number,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return {
+            "last_intent": row[0],
+            "fecha": row[1],
+            "hora": row[2],
+            "nombre": row[3],
+            "profesional": row[4],
+            "especialidad": row[5]
+        }
+    return None
+
+def update_conversation_state(phone_number, **kwargs):
+    conn = get_connection()
+    c = conn.cursor()
+    fields = []
+    values = []
+    for k, v in kwargs.items():
+        fields.append(f"{k} = %s")
+        values.append(v)
+    values.append(phone_number)
+    set_clause = ", ".join(fields) + ", last_update = NOW()"
+    # Insertar o actualizar
+    insert_fields = ', '.join(['phone_number'] + list(kwargs.keys()) + ['last_update'])
+    insert_values = ', '.join(['%s'] * (len(kwargs) + 2))
+    c.execute(f"""
+        INSERT INTO conversation_state ({insert_fields})
+        VALUES ({', '.join(['%s'] * (len(kwargs) + 2))})
+        ON CONFLICT (phone_number) DO UPDATE SET {set_clause}
+    """, [phone_number] + list(kwargs.values()) + [datetime.now()])
+    conn.commit()
+    conn.close()
+
+def clear_conversation_state(phone_number):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM conversation_state WHERE phone_number = %s", (phone_number,))
+    conn.commit()
+    conn.close() 

@@ -16,16 +16,13 @@ def is_valid_name(name):
 
 # Validar teléfono: solo números, puede empezar con +, 10-15 dígitos
 PHONE_REGEX = re.compile(r"^\+?\d{10,15}$")
-def is_valid_phone(phone):
-    """Valida que el teléfono tenga solo números, opcional +, y 10-15 dígitos.
-
-    Args:
-        phone (str): Teléfono a validar.
-
-    Returns:
-        bool: True si es válido, False si no.
-    """
-    return bool(PHONE_REGEX.fullmatch(phone.strip()))
+def is_valid_phone(phone_number):
+    import re
+    phone_number = phone_number.strip()
+    if phone_number.startswith('whatsapp:'):
+        phone_number = phone_number[len('whatsapp:'):]
+    phone_number = phone_number.strip()
+    return re.fullmatch(r'\+?\d{10,15}', phone_number) is not None
 
 # Validar fecha: formato DD/MM/YYYY
 DATE_FORMAT = "%d/%m/%Y"
