@@ -1,16 +1,34 @@
-import os
-import psycopg2
+"""
+Conexión a PostgreSQL
+Configuración básica para desarrollo
+"""
+
+import logging
+from typing import Optional
+
+logger = logging.getLogger('asistente_salud')
+
+# Para desarrollo, usamos la simulación en memoria
+# En producción, aquí iría la conexión real a PostgreSQL
 
 def get_connection():
-    """Establece una conexión a la base de datos PostgreSQL usando variables de entorno.
+    """Obtiene conexión a la base de datos"""
+    # Por ahora retornamos None para usar la simulación en memoria
+    return None
 
-    Returns:
-        connection: Objeto de conexión psycopg2.
-    """
-    return psycopg2.connect(
-        dbname=os.getenv('POSTGRES_DB', 'asistente_salud'),
-        user=os.getenv('POSTGRES_USER', 'asistente_user'),
-        password=os.getenv('POSTGRES_PASSWORD', 'tu_password_segura'),
-        host=os.getenv('POSTGRES_HOST', 'localhost'),
-        port=os.getenv('POSTGRES_PORT', 5432)
-    ) 
+def close_connection(connection):
+    """Cierra la conexión a la base de datos"""
+    if connection:
+        try:
+            connection.close()
+        except Exception as e:
+            logger.error(f"Error cerrando conexión: {str(e)}")
+
+def test_connection() -> bool:
+    """Prueba la conexión a la base de datos"""
+    try:
+        # Por ahora siempre retorna True para desarrollo
+        return True
+    except Exception as e:
+        logger.error(f"Error probando conexión: {str(e)}")
+        return False

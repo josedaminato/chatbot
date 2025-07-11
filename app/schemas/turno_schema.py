@@ -86,3 +86,6 @@ class TurnoListResponse(BaseModel):
     total: int = Field(..., description="Total de turnos")
     page: int = Field(..., description="Página actual")
     per_page: int = Field(..., description="Turnos por página") 
+
+# Alias para compatibilidad y claridad
+TurnoSchema = TurnoCreate 

@@ -14,6 +14,12 @@ from app.db.queries import (
     get_appointments_by_phone, mark_appointment_absent
 )
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from app.services.whatsapp_service import send_whatsapp_message
+from app.db.queries import get_connection
+from datetime import timedelta
+from functools import wraps
+
 logger = logging.getLogger('asistente_salud')
 
 class AgendaService:
@@ -322,3 +328,65 @@ class AgendaService:
             'created_at': appointment['created_at'].isoformat() if appointment['created_at'] else None,
             'updated_at': appointment['updated_at'].isoformat() if appointment['updated_at'] else None
         } 
+
+# --- Funciones reutilizables de agendamiento ---
+
+def retry(max_retries=3):
+    """Decorador para reintentar una función ante excepción, con logging de errores."""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            attempts = 0
+            while attempts < max_retries:
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    logger.error(f"Error en {func.__name__}: {e}. Reintento {attempts+1}/{max_retries}")
+                    attempts += 1
+            logger.error(f"Fallo definitivo en {func.__name__} tras {max_retries} reintentos.")
+        return wrapper
+    return decorator
+
+@retry(max_retries=3)
+def send_followup_messages():
+    """Envía mensajes de seguimiento a pacientes que tuvieron turno el día anterior."""
+    now = datetime.now()
+    yesterday = now - timedelta(days=1)
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('''SELECT id, patient_name, phone_number, appointment_date FROM appointments WHERE status = 'confirmado' AND followup_sent = 0 AND appointment_date < %s''', (yesterday,))
+    turnos = c.fetchall()
+    for turno in turnos:
+        turno_id, patient_name, phone_number, appointment_date = turno
+        message = f"Hola {patient_name}, ¿cómo te fue en la consulta? Si querés dejar una reseña o reprogramar otro turno, escribime 😊"
+        try:
+            send_whatsapp_message(phone_number, message)
+        except Exception as e:
+            logger.error(f"Error enviando WhatsApp a {phone_number}: {e}")
+            continue
+        c.execute('UPDATE appointments SET followup_sent = 1 WHERE id = %s', (turno_id,))
+    conn.commit()
+    conn.close()
+
+@retry(max_retries=3)
+def mark_absences_and_send_followup():
+    """Marca ausencias y envía mensajes de seguimiento a pacientes que no asistieron."""
+    now = datetime.now()
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('''SELECT id, patient_name, phone_number, appointment_date FROM appointments WHERE status = 'confirmado' AND appointment_date < %s AND (attended IS NULL OR attended = 0) AND followup_sent = 0''', (now,))
+    turnos = c.fetchall()
+    for turno in turnos:
+        turno_id, patient_name, phone_number, appointment_date = turno
+        # Marcar como ausente
+        c.execute('UPDATE appointments SET attended = 0 WHERE id = %s', (turno_id,))
+        # Enviar mensaje de seguimiento por ausencia
+        message = f"Hola {patient_name}, notamos que no asististe a tu turno. ¿Querés reprogramar o necesitas ayuda? Si fue un error, avísanos 😊"
+        try:
+            send_whatsapp_message(phone_number, message)
+        except Exception as e:
+            logger.error(f"Error enviando WhatsApp a {phone_number}: {e}")
+            continue
+        c.execute('UPDATE appointments SET followup_sent = 1 WHERE id = %s', (turno_id,))
+    conn.commit()
+    conn.close() 

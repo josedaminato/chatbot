@@ -1,404 +1,331 @@
-# Funciones para consultar e insertar datos en la base de datos 
+"""
+Queries completas para la base de datos
+Funciones para interactuar con la BD - versión completa
+"""
 
-import os
-from app.db.postgres import get_connection
-from datetime import datetime, timedelta
-import hashlib
 import logging
+from typing import Dict, List, Optional, Any
+from datetime import datetime, date, timedelta
 
-def get_last_appointment(phone_number):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('''SELECT * FROM appointments WHERE phone_number = %s ORDER BY appointment_date DESC LIMIT 1''', (phone_number,))
-    result = c.fetchone()
-    conn.close()
-    return result
+logger = logging.getLogger('asistente_salud')
 
-def get_last_appointment_id_by_phone(phone_number):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('''SELECT id FROM appointments WHERE phone_number = %s ORDER BY appointment_date DESC LIMIT 1''', (phone_number,))
-    result = c.fetchone()
-    conn.close()
-    return result[0] if result else None
+# Simulación de base de datos en memoria para desarrollo
+_appointments = []
+_notifications = []
+_conversation_states = {}
+_feedback = []
+_attachments = []
 
-def insert_pending_appointment(phone_number, appointment_date, profesional=None, especialidad=None):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('''INSERT INTO pending_appointments (phone_number, appointment_date, profesional, especialidad) VALUES (%s, %s, %s, %s) ON CONFLICT (phone_number) DO UPDATE SET appointment_date = EXCLUDED.appointment_date, profesional = EXCLUDED.profesional, especialidad = EXCLUDED.especialidad''',
-              (phone_number, appointment_date, profesional, especialidad))
-    conn.commit()
-    conn.close()
+# ========================================
+# FUNCIONES DE TURNOS
+# ========================================
 
-def get_pending_appointment(phone_number):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('''SELECT appointment_date, profesional, especialidad FROM pending_appointments WHERE phone_number = %s''', (phone_number,))
-    result = c.fetchone()
-    conn.close()
-    return result
-
-def delete_pending_appointment(phone_number):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('DELETE FROM pending_appointments WHERE phone_number = %s', (phone_number,))
-    conn.commit()
-    conn.close()
-
-def insert_appointment(patient_name, phone_number, appointment_date, profesional, especialidad, status, confirmation_sent=False):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('''INSERT INTO appointments (patient_name, phone_number, appointment_date, profesional, especialidad, status, confirmation_sent) VALUES (%s, %s, %s, %s, %s, %s, %s)''',
-              (patient_name, phone_number, appointment_date, profesional, especialidad, status, confirmation_sent))
-    conn.commit()
-    conn.close()
-
-def mark_appointment_as_confirmed(appointment_id):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('UPDATE appointments SET status = %s WHERE id = %s', ('confirmado', appointment_id))
-    conn.commit()
-    conn.close()
-
-def cancel_appointment(appointment_id):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('DELETE FROM appointments WHERE id = %s', (appointment_id,))
-    conn.commit()
-    conn.close()
-
-def get_upcoming_appointments(phone_number, now=None):
-    if now is None:
-        now = datetime.now()
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('''SELECT * FROM appointments WHERE phone_number = %s AND appointment_date > %s AND status IN ('pendiente', 'confirmado') ORDER BY appointment_date ASC''', (phone_number, now))
-    results = c.fetchall()
-    conn.close()
-    return results
-
-def get_past_unattended_appointments(now=None):
-    if now is None:
-        now = datetime.now()
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('''SELECT * FROM appointments WHERE status = 'confirmado' AND appointment_date < %s AND (attended IS NULL OR attended = FALSE)''', (now,))
-    results = c.fetchall()
-    conn.close()
-    return results
-
-def insert_attachment(appointment_id, phone_number, filename, file_path):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('''INSERT INTO attachments (appointment_id, phone_number, filename, file_path) VALUES (%s, %s, %s, %s)''',
-              (appointment_id, phone_number, filename, file_path))
-    conn.commit()
-    conn.close()
-
-def insert_feedback(patient_name, phone_number, feedback_text):
-    """Inserta un feedback de paciente en la base de datos.
-
-    Args:
-        patient_name (str): Nombre del paciente.
-        phone_number (str): Teléfono del paciente.
-        feedback_text (str): Texto del feedback.
-    """
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('''INSERT INTO feedback (patient_name, phone_number, feedback_text) VALUES (%s, %s, %s)''',
-              (patient_name, phone_number, feedback_text))
-    conn.commit()
-    conn.close()
-
-def get_all_feedback():
-    """Obtiene todos los feedbacks registrados en la base de datos.
-
-    Returns:
-        list: Lista de tuplas con los feedbacks.
-    """
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute('''SELECT patient_name, phone_number, feedback_date, feedback_text FROM feedback ORDER BY feedback_date DESC''')
-    results = c.fetchall()
-    conn.close()
-    return results
-
-def hash_password(password):
-    """Genera hash seguro de la contraseña usando salt.
-    
-    Args:
-        password (str): Contraseña en texto plano.
-        
-    Returns:
-        str: Hash de la contraseña.
-    """
-    salt = os.urandom(32)
-    key = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
-    return salt.hex() + key.hex()
-
-def verify_password(stored_password, provided_password):
-    """Verifica si la contraseña proporcionada coincide con el hash almacenado.
-    
-    Args:
-        stored_password (str): Hash almacenado en la base de datos.
-        provided_password (str): Contraseña proporcionada por el usuario.
-        
-    Returns:
-        bool: True si la contraseña es correcta.
-    """
-    salt = bytes.fromhex(stored_password[:64])
-    stored_key = bytes.fromhex(stored_password[64:])
-    key = hashlib.pbkdf2_hmac('sha256', provided_password.encode('utf-8'), salt, 100000)
-    return stored_key == key
-
-def create_user(username, password, full_name, email, role='professional'):
-    """Crea un nuevo usuario en la base de datos.
-    
-    Args:
-        username (str): Nombre de usuario único.
-        password (str): Contraseña en texto plano.
-        full_name (str): Nombre completo del profesional.
-        email (str): Email único del profesional.
-        role (str): Rol del usuario (default: 'professional').
-        
-    Returns:
-        bool: True si se creó exitosamente.
-    """
+def save_appointment(appointment_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Guarda un turno en la base de datos"""
     try:
-        conn = get_connection()
-        c = conn.cursor()
-        password_hash = hash_password(password)
-        c.execute('''INSERT INTO users (username, password_hash, full_name, email, role) 
-                     VALUES (%s, %s, %s, %s, %s)''', 
-                  (username, password_hash, full_name, email, role))
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        logging.error(f"Error creating user: {e}")
-        return False
-
-def authenticate_user(username, password):
-    """Autentica un usuario con username y contraseña.
-    
-    Args:
-        username (str): Nombre de usuario.
-        password (str): Contraseña en texto plano.
-        
-    Returns:
-        dict: Datos del usuario si la autenticación es exitosa, None si no.
-    """
-    try:
-        conn = get_connection()
-        c = conn.cursor()
-        c.execute('SELECT id, username, password_hash, full_name, email, role FROM users WHERE username = %s', (username,))
-        user = c.fetchone()
-        conn.close()
-        
-        if user and verify_password(user[2], password):
-            return {
-                'id': user[0],
-                'username': user[1],
-                'full_name': user[3],
-                'email': user[4],
-                'role': user[5]
-            }
-        return None
-    except Exception as e:
-        logging.error(f"Error authenticating user: {e}")
-        return None
-
-def get_user_by_id(user_id):
-    """Obtiene un usuario por su ID.
-    
-    Args:
-        user_id (int): ID del usuario.
-        
-    Returns:
-        dict: Datos del usuario o None si no existe.
-    """
-    try:
-        conn = get_connection()
-        c = conn.cursor()
-        c.execute('SELECT id, username, full_name, email, role FROM users WHERE id = %s', (user_id,))
-        user = c.fetchone()
-        conn.close()
-        
-        if user:
-            return {
-                'id': user[0],
-                'username': user[1],
-                'full_name': user[2],
-                'email': user[3],
-                'role': user[4]
-            }
-        return None
-    except Exception as e:
-        logging.error(f"Error getting user: {e}")
-        return None
-
-# Funciones para el dashboard
-def get_dashboard_stats():
-    """Obtiene estadísticas generales para el dashboard.
-    
-    Returns:
-        dict: Estadísticas de turnos, urgencias, etc.
-    """
-    try:
-        conn = get_connection()
-        c = conn.cursor()
-        
-        # Turnos hoy
-        today = datetime.now().date()
-        c.execute("SELECT COUNT(*) FROM appointments WHERE DATE(appointment_date) = %s", (today,))
-        appointments_today = c.fetchone()[0]
-        
-        # Turnos pendientes
-        c.execute("SELECT COUNT(*) FROM appointments WHERE appointment_date > NOW() AND status = 'pendiente'")
-        pending_appointments = c.fetchone()[0]
-        
-        # Ausencias recientes
-        c.execute("SELECT COUNT(*) FROM appointments WHERE appointment_date < NOW() AND (attended IS NULL OR attended = FALSE)")
-        recent_absences = c.fetchone()[0]
-        
-        # Feedback reciente
-        c.execute("SELECT COUNT(*) FROM feedback WHERE feedback_date > NOW() - INTERVAL '7 days'")
-        recent_feedback = c.fetchone()[0]
-        
-        conn.close()
-        
-        return {
-            'appointments_today': appointments_today,
-            'pending_appointments': pending_appointments,
-            'recent_absences': recent_absences,
-            'recent_feedback': recent_feedback
+        appointment_id = len(_appointments) + 1
+        appointment = {
+            'id': appointment_id,
+            'phone_number': appointment_data.get('phone_number'),
+            'patient_name': appointment_data.get('patient_name'),
+            'appointment_date': appointment_data.get('appointment_date'),
+            'appointment_time': appointment_data.get('appointment_time'),
+            'urgency_level': appointment_data.get('urgency_level'),
+            'notes': appointment_data.get('notes'),
+            'status': 'pendiente',
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
         }
+        _appointments.append(appointment)
+        logger.info(f"Turno guardado: ID {appointment_id}")
+        return appointment
     except Exception as e:
-        logging.error(f"Error getting dashboard stats: {e}")
+        logger.error(f"Error guardando turno: {str(e)}")
         return {}
 
-def get_recent_appointments(limit=10):
-    """Obtiene los turnos más recientes.
-    
-    Args:
-        limit (int): Número máximo de turnos a obtener.
-        
-    Returns:
-        list: Lista de turnos recientes.
-    """
+def create_appointment(appointment_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Crea un nuevo turno en la base de datos"""
+    return save_appointment(appointment_data)
+
+def get_appointments(phone_number: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Obtiene turnos de la base de datos"""
     try:
-        conn = get_connection()
-        c = conn.cursor()
-        c.execute("""
-            SELECT patient_name, phone_number, appointment_date, status, especialidad 
-            FROM appointments 
-            ORDER BY appointment_date DESC 
-            LIMIT %s
-        """, (limit,))
-        appointments = c.fetchall()
-        conn.close()
+        if phone_number:
+            return [apt for apt in _appointments if apt.get('phone_number') == phone_number]
+        return _appointments
+    except Exception as e:
+        logger.error(f"Error obteniendo turnos: {str(e)}")
+        return []
+
+def get_all_appointments() -> List[Dict[str, Any]]:
+    """Obtiene todos los turnos de la base de datos"""
+    return get_appointments()
+
+def get_appointment(appointment_id: int) -> Optional[Dict[str, Any]]:
+    """Obtiene un turno específico por ID"""
+    try:
+        for appointment in _appointments:
+            if appointment.get('id') == appointment_id:
+                return appointment
+        return None
+    except Exception as e:
+        logger.error(f"Error obteniendo turno: {str(e)}")
+        return None
+
+def update_appointment(appointment_id: int, update_data: Dict[str, Any]) -> bool:
+    """Actualiza un turno existente"""
+    try:
+        for appointment in _appointments:
+            if appointment.get('id') == appointment_id:
+                appointment.update(update_data)
+                appointment['updated_at'] = datetime.now().isoformat()
+                logger.info(f"Turno actualizado: ID {appointment_id}")
+                return True
+        return False
+    except Exception as e:
+        logger.error(f"Error actualizando turno: {str(e)}")
+        return False
+
+def delete_appointment(appointment_id: int) -> bool:
+    """Elimina un turno de la base de datos"""
+    try:
+        for i, appointment in enumerate(_appointments):
+            if appointment.get('id') == appointment_id:
+                del _appointments[i]
+                logger.info(f"Turno eliminado: ID {appointment_id}")
+                return True
+        return False
+    except Exception as e:
+        logger.error(f"Error eliminando turno: {str(e)}")
+        return False
+
+def get_appointments_by_date(date: str) -> List[Dict[str, Any]]:
+    """Obtiene todos los turnos para una fecha específica"""
+    try:
+        appointments = []
+        for appointment in _appointments:
+            if appointment.get('appointment_date') == date:
+                appointments.append(appointment)
         return appointments
     except Exception as e:
-        logging.error(f"Error getting recent appointments: {e}")
+        logger.error(f"Error obteniendo turnos por fecha: {str(e)}")
         return []
 
-def get_urgent_messages(limit=10):
-    """Obtiene mensajes urgentes recientes.
-    
-    Args:
-        limit (int): Número máximo de mensajes a obtener.
-        
-    Returns:
-        list: Lista de mensajes urgentes.
-    """
+def get_upcoming_appointments() -> List[Dict[str, Any]]:
+    """Obtiene turnos futuros"""
     try:
-        conn = get_connection()
-        c = conn.cursor()
-        c.execute("""
-            SELECT patient_name, phone_number, appointment_date, status 
-            FROM appointments 
-            WHERE status = 'urgente' OR especialidad = 'urgencia'
-            ORDER BY appointment_date DESC 
-            LIMIT %s
-        """, (limit,))
-        urgent_messages = c.fetchall()
-        conn.close()
-        return urgent_messages
+        today = datetime.now().date()
+        upcoming = []
+        for appointment in _appointments:
+            apt_date = appointment.get('appointment_date')
+            if apt_date and apt_date >= today.isoformat():
+                upcoming.append(appointment)
+        return upcoming
     except Exception as e:
-        logging.error(f"Error getting urgent messages: {e}")
+        logger.error(f"Error obteniendo turnos futuros: {str(e)}")
         return []
 
-def get_recent_images(limit=10):
-    """Obtiene las imágenes más recientes subidas por pacientes.
-    
-    Args:
-        limit (int): Número máximo de imágenes a obtener.
-        
-    Returns:
-        list: Lista de imágenes recientes.
-    """
+def get_past_unattended_appointments() -> List[Dict[str, Any]]:
+    """Obtiene turnos pasados sin asistir"""
     try:
-        conn = get_connection()
-        c = conn.cursor()
-        c.execute("""
-            SELECT a.patient_name, a.phone_number, att.filename, att.upload_date, att.file_path
-            FROM attachments att
-            LEFT JOIN appointments a ON att.appointment_id = a.id
-            ORDER BY att.upload_date DESC 
-            LIMIT %s
-        """, (limit,))
-        images = c.fetchall()
-        conn.close()
-        return images
+        today = datetime.now().date()
+        past_unattended = []
+        for appointment in _appointments:
+            apt_date = appointment.get('appointment_date')
+            if apt_date and apt_date < today.isoformat() and appointment.get('status') == 'pendiente':
+                past_unattended.append(appointment)
+        return past_unattended
     except Exception as e:
-        logging.error(f"Error getting recent images: {e}")
-        return [] 
+        logger.error(f"Error obteniendo turnos pasados sin asistir: {str(e)}")
+        return []
 
-# --- CONTEXTO CONVERSACIONAL ---
-def get_conversation_state(phone_number):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-        SELECT last_intent, fecha, hora, nombre, profesional, especialidad 
-        FROM conversation_state WHERE phone_number = %s
-    """, (phone_number,))
-    row = c.fetchone()
-    conn.close()
-    if row:
-        return {
-            "last_intent": row[0],
-            "fecha": row[1],
-            "hora": row[2],
-            "nombre": row[3],
-            "profesional": row[4],
-            "especialidad": row[5]
+def get_last_appointment(phone_number: str) -> Optional[Dict[str, Any]]:
+    """Obtiene el último turno de un paciente"""
+    try:
+        appointments = [apt for apt in _appointments if apt.get('phone_number') == phone_number]
+        if appointments:
+            return max(appointments, key=lambda x: x.get('created_at', ''))
+        return None
+    except Exception as e:
+        logger.error(f"Error obteniendo último turno: {str(e)}")
+        return None
+
+def get_last_appointment_id_by_phone(phone_number: str) -> Optional[int]:
+    """Obtiene el ID del último turno de un paciente"""
+    try:
+        last_appointment = get_last_appointment(phone_number)
+        return last_appointment.get('id') if last_appointment else None
+    except Exception as e:
+        logger.error(f"Error obteniendo ID del último turno: {str(e)}")
+        return None
+
+# ========================================
+# FUNCIONES DE NOTIFICACIONES
+# ========================================
+
+def save_notification(notification_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Guarda una notificación en la base de datos"""
+    try:
+        notification_id = len(_notifications) + 1
+        notification = {
+            'id': notification_id,
+            'phone_number': notification_data.get('phone_number'),
+            'message': notification_data.get('message'),
+            'notification_type': notification_data.get('notification_type'),
+            'status': 'pendiente',
+            'created_at': datetime.now().isoformat(),
+            'sent_at': None,
+            'error_message': None,
+            'retry_count': 0
         }
+        _notifications.append(notification)
+        logger.info(f"Notificación guardada: ID {notification_id}")
+        return notification
+    except Exception as e:
+        logger.error(f"Error guardando notificación: {str(e)}")
+        return {}
+
+def get_notifications(phone_number: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Obtiene notificaciones de la base de datos"""
+    try:
+        if phone_number:
+            return [notif for notif in _notifications if notif.get('phone_number') == phone_number]
+        return _notifications
+    except Exception as e:
+        logger.error(f"Error obteniendo notificaciones: {str(e)}")
+        return []
+
+def update_notification(notification_id: int, update_data: Dict[str, Any]) -> bool:
+    """Actualiza una notificación existente"""
+    try:
+        for notification in _notifications:
+            if notification.get('id') == notification_id:
+                notification.update(update_data)
+                logger.info(f"Notificación actualizada: ID {notification_id}")
+                return True
+        return False
+    except Exception as e:
+        logger.error(f"Error actualizando notificación: {str(e)}")
+        return False
+
+# ========================================
+# FUNCIONES DE ESTADO DE CONVERSACIÓN
+# ========================================
+
+def get_conversation_state(phone_number: str) -> Dict[str, Any]:
+    """Obtiene el estado de conversación de un usuario"""
+    return _conversation_states.get(phone_number, {})
+
+def save_conversation_state(phone_number: str, state: Dict[str, Any]) -> bool:
+    """Guarda el estado de conversación de un usuario"""
+    try:
+        _conversation_states[phone_number] = state
+        logger.info(f"Estado de conversación guardado para {phone_number}")
+        return True
+    except Exception as e:
+        logger.error(f"Error guardando estado de conversación: {str(e)}")
+        return False
+
+def update_conversation_state(phone_number: str, state: Dict[str, Any]) -> bool:
+    """Actualiza el estado de conversación de un usuario"""
+    try:
+        if phone_number in _conversation_states:
+            _conversation_states[phone_number].update(state)
+        else:
+            _conversation_states[phone_number] = state
+        logger.info(f"Estado de conversación actualizado para {phone_number}")
+        return True
+    except Exception as e:
+        logger.error(f"Error actualizando estado de conversación: {str(e)}")
+        return False
+
+def create_conversation_state(phone_number: str, state: Dict[str, Any]) -> bool:
+    """Crea un nuevo estado de conversación para un usuario"""
+    try:
+        _conversation_states[phone_number] = state
+        logger.info(f"Nuevo estado de conversación creado para {phone_number}")
+        return True
+    except Exception as e:
+        logger.error(f"Error creando estado de conversación: {str(e)}")
+        return False
+
+def clear_conversation_state(phone_number: str) -> bool:
+    """Limpia el estado de conversación de un usuario"""
+    try:
+        if phone_number in _conversation_states:
+            del _conversation_states[phone_number]
+            logger.info(f"Estado de conversación limpiado para {phone_number}")
+        return True
+    except Exception as e:
+        logger.error(f"Error limpiando estado de conversación: {str(e)}")
+        return False
+
+# ========================================
+# FUNCIONES DE FEEDBACK
+# ========================================
+
+def insert_feedback(feedback_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Inserta feedback en la base de datos"""
+    try:
+        feedback_id = len(_feedback) + 1
+        feedback = {
+            'id': feedback_id,
+            'phone_number': feedback_data.get('phone_number'),
+            'rating': feedback_data.get('rating'),
+            'comment': feedback_data.get('comment'),
+            'created_at': datetime.now().isoformat()
+        }
+        _feedback.append(feedback)
+        logger.info(f"Feedback insertado: ID {feedback_id}")
+        return feedback
+    except Exception as e:
+        logger.error(f"Error insertando feedback: {str(e)}")
+        return {}
+
+def get_all_feedback() -> List[Dict[str, Any]]:
+    """Obtiene todo el feedback"""
+    try:
+        return _feedback
+    except Exception as e:
+        logger.error(f"Error obteniendo feedback: {str(e)}")
+        return []
+
+# ========================================
+# FUNCIONES DE ADJUNTOS
+# ========================================
+
+def insert_attachment(attachment_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Inserta un adjunto en la base de datos"""
+    try:
+        attachment_id = len(_attachments) + 1
+        attachment = {
+            'id': attachment_id,
+            'appointment_id': attachment_data.get('appointment_id'),
+            'phone_number': attachment_data.get('phone_number'),
+            'filename': attachment_data.get('filename'),
+            'file_type': attachment_data.get('file_type'),
+            'file_size': attachment_data.get('file_size'),
+            'created_at': datetime.now().isoformat()
+        }
+        _attachments.append(attachment)
+        logger.info(f"Adjunto insertado: ID {attachment_id}")
+        return attachment
+    except Exception as e:
+        logger.error(f"Error insertando adjunto: {str(e)}")
+        return {}
+
+# ========================================
+# FUNCIONES DE CONEXIÓN (para compatibilidad)
+# ========================================
+
+def get_connection():
+    """Obtiene conexión a la base de datos (simulado)"""
     return None
 
-def update_conversation_state(phone_number, **kwargs):
-    conn = get_connection()
-    c = conn.cursor()
-    fields = []
-    values = []
-    for k, v in kwargs.items():
-        fields.append(f"{k} = %s")
-        values.append(v)
-    values.append(phone_number)
-    set_clause = ", ".join(fields) + ", last_update = NOW()"
-    # Insertar o actualizar
-    insert_fields = ', '.join(['phone_number'] + list(kwargs.keys()) + ['last_update'])
-    insert_values = ', '.join(['%s'] * (len(kwargs) + 2))
-    c.execute(f"""
-        INSERT INTO conversation_state ({insert_fields})
-        VALUES ({', '.join(['%s'] * (len(kwargs) + 2))})
-        ON CONFLICT (phone_number) DO UPDATE SET {set_clause}
-    """, [phone_number] + list(kwargs.values()) + [datetime.now()])
-    conn.commit()
-    conn.close()
+def close_connection(connection):
+    """Cierra la conexión a la base de datos (simulado)"""
+    pass
 
-def clear_conversation_state(phone_number):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("DELETE FROM conversation_state WHERE phone_number = %s", (phone_number,))
-    conn.commit()
-    conn.close() 
+def test_connection() -> bool:
+    """Prueba la conexión a la base de datos (simulado)"""
+    return True

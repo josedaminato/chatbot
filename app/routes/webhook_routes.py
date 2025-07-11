@@ -13,6 +13,7 @@ from app.handlers import (
     greeting_handler, appointment_handler, cancellation_handler,
     confirmation_handler, faq_handler, image_handler, default_handler
 )
+from app.schemas.mensaje_entrada_schema import MensajeEntradaSchema
 
 logger = logging.getLogger('asistente_salud')
 
@@ -27,11 +28,16 @@ def webhook():
     try:
         # Obtener datos del request
         data = request.form.to_dict()
-        
+        # Validar datos entrantes con Pydantic
+        try:
+            mensaje = MensajeEntradaSchema(**data)
+        except Exception as e:
+            logger.warning(f"Datos de webhook inválidos: {e}")
+            return jsonify({'error': f'Datos inválidos: {e}'}), 400
         # Extraer información del mensaje
-        phone_number = data.get('From', '').replace('whatsapp:', '')
-        message_body = data.get('Body', '').strip()
-        message_type = data.get('MediaContentType0', 'text')
+        phone_number = mensaje.From.replace('whatsapp:', '')
+        message_body = mensaje.Body.strip()
+        message_type = mensaje.MediaContentType0 or 'text'
         
         # Validar número de teléfono
         if not is_valid_phone(phone_number):
