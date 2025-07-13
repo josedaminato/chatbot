@@ -11,7 +11,7 @@ from app.schemas.turno_schema import TurnoCreate, TurnoUpdate, TurnoResponse, Es
 from app.db.queries import (
     create_appointment, get_appointment, update_appointment,
     delete_appointment, get_appointments_by_date, get_all_appointments,
-    get_appointments_by_phone, mark_appointment_absent
+    get_appointments, mark_appointment_absent
 )
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -242,7 +242,7 @@ class AgendaService:
             Lista de turnos
         """
         try:
-            appointments = get_appointments_by_phone(phone_number)
+            appointments = get_appointments(phone_number)
             return [self._format_appointment_response(apt) for apt in appointments]
         except Exception as e:
             logger.error(f"Error obteniendo turnos para {phone_number}: {str(e)}")

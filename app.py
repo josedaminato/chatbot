@@ -23,7 +23,6 @@ from app.services.calendar_service import (
     is_slot_available_in_calendar,
     create_calendar_event
 )
-from app.db.init_db import init_db
 from app.db.queries import get_settings, get_connection
 
 # Cargar variables de entorno

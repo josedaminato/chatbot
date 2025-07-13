@@ -10,7 +10,6 @@ from datetime import datetime, date, timedelta
 from app.services import agenda_service, notification_service, ai_service
 from app.schemas import TurnoCreate, TurnoUpdate, UsuarioLogin
 from app.config import CLINIC_NAME
-from app.logging_config import log_error_with_context
 from app.db.queries import (
     get_all_appointments, get_appointments_by_date_range,
     get_user_by_username, create_user, get_all_users,
@@ -65,7 +64,7 @@ def login():
                 flash('Credenciales inválidas', 'error')
                 
         except Exception as e:
-            log_error_with_context(logger, e)
+            logger.error(f"Error al iniciar sesión: {e}")
             flash('Error al iniciar sesión', 'error')
     
     return render_template('dashboard/login.html', clinic_name=CLINIC_NAME)
@@ -115,7 +114,7 @@ def index():
         return render_template('dashboard/index.html', **context)
         
     except Exception as e:
-        log_error_with_context(logger, e, user_id=session.get('user_id'))
+        logger.error(f"Error cargando el dashboard: {e}", extra={'user_id': session.get('user_id')})
         flash('Error cargando el dashboard', 'error')
         return render_template('dashboard/index.html', clinic_name=CLINIC_NAME)
 
@@ -158,7 +157,7 @@ def appointments():
         return render_template('dashboard/appointments.html', **context)
         
     except Exception as e:
-        log_error_with_context(logger, e, user_id=session.get('user_id'))
+        logger.error(f"Error cargando turnos: {e}", extra={'user_id': session.get('user_id')})
         flash('Error cargando turnos', 'error')
         return render_template('dashboard/appointments.html', clinic_name=CLINIC_NAME)
 
@@ -181,7 +180,7 @@ def appointment_detail(appointment_id):
         return render_template('dashboard/appointment_detail.html', **context)
         
     except Exception as e:
-        log_error_with_context(logger, e, user_id=session.get('user_id'))
+        logger.error(f"Error cargando detalle del turno: {e}", extra={'user_id': session.get('user_id')})
         flash('Error cargando detalle del turno', 'error')
         return redirect(url_for('dashboard.appointments'))
 
@@ -199,7 +198,7 @@ def cancel_appointment(appointment_id):
             flash(f"Error cancelando turno: {result.get('message', 'Error desconocido')}", 'error')
             
     except Exception as e:
-        log_error_with_context(logger, e, user_id=session.get('user_id'))
+        logger.error(f"Error cancelando turno: {e}", extra={'user_id': session.get('user_id')})
         flash('Error cancelando turno', 'error')
     
     return redirect(url_for('dashboard.appointment_detail', appointment_id=appointment_id))
@@ -217,7 +216,7 @@ def mark_absent(appointment_id):
             flash(f"Error marcando ausente: {result.get('message', 'Error desconocido')}", 'error')
             
     except Exception as e:
-        log_error_with_context(logger, e, user_id=session.get('user_id'))
+        logger.error(f"Error marcando ausente: {e}", extra={'user_id': session.get('user_id')})
         flash('Error marcando ausente', 'error')
     
     return redirect(url_for('dashboard.appointment_detail', appointment_id=appointment_id))
@@ -238,7 +237,7 @@ def notifications():
         return render_template('dashboard/notifications.html', **context)
         
     except Exception as e:
-        log_error_with_context(logger, e, user_id=session.get('user_id'))
+        logger.error(f"Error cargando notificaciones: {e}", extra={'user_id': session.get('user_id')})
         flash('Error cargando notificaciones', 'error')
         return render_template('dashboard/notifications.html', clinic_name=CLINIC_NAME)
 
@@ -255,7 +254,7 @@ def retry_notifications():
             flash(f"Error reintentando notificaciones: {result.get('error', 'Error desconocido')}", 'error')
             
     except Exception as e:
-        log_error_with_context(logger, e, user_id=session.get('user_id'))
+        logger.error(f"Error reintentando notificaciones: {e}", extra={'user_id': session.get('user_id')})
         flash('Error reintentando notificaciones', 'error')
     
     return redirect(url_for('dashboard.notifications'))
@@ -275,7 +274,7 @@ def users():
         return render_template('dashboard/users.html', **context)
         
     except Exception as e:
-        log_error_with_context(logger, e, user_id=session.get('user_id'))
+        logger.error(f"Error cargando usuarios: {e}", extra={'user_id': session.get('user_id')})
         flash('Error cargando usuarios', 'error')
         return render_template('dashboard/users.html', clinic_name=CLINIC_NAME)
 
@@ -301,7 +300,7 @@ def api_appointments():
         })
         
     except Exception as e:
-        log_error_with_context(logger, e, user_id=session.get('user_id'))
+        logger.error(f"Error API de turnos: {e}", extra={'user_id': session.get('user_id')})
         return jsonify({
             'success': False,
             'error': str(e)
@@ -325,7 +324,7 @@ def api_available_slots():
         })
         
     except Exception as e:
-        log_error_with_context(logger, e, user_id=session.get('user_id'))
+        logger.error(f"Error API de horarios disponibles: {e}", extra={'user_id': session.get('user_id')})
         return jsonify({
             'success': False,
             'error': str(e)
@@ -344,7 +343,7 @@ def api_conversation_summary(phone_number):
         })
         
     except Exception as e:
-        log_error_with_context(logger, e, user_id=session.get('user_id'))
+        logger.error(f"Error API de resumen de conversación: {e}", extra={'user_id': session.get('user_id')})
         return jsonify({
             'success': False,
             'error': str(e)

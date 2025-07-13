@@ -7,7 +7,6 @@ from flask import Blueprint, request, jsonify
 import logging
 from datetime import datetime
 from app.services import ai_service, agenda_service, notification_service
-from app.logging_config import log_webhook_request, log_error_with_context
 from app.utils.validators import is_valid_phone
 from app.handlers import (
     greeting_handler, appointment_handler, cancellation_handler,
@@ -45,7 +44,7 @@ def webhook():
             return jsonify({'error': 'Invalid phone number'}), 400
         
         # Log del request
-        log_webhook_request(logger, phone_number, message_body, "Processing webhook")
+        logger.info(f"Webhook request - Phone: {phone_number}, Message: {message_body}")
         
         # Procesar según el tipo de mensaje
         if message_type.startswith('image/'):
@@ -54,12 +53,12 @@ def webhook():
             response = _handle_text_message(phone_number, message_body)
         
         # Log de la respuesta
-        log_webhook_request(logger, phone_number, response, "Response sent")
+        logger.info(f"Webhook response - Phone: {phone_number}, Response: {response}")
         
         return jsonify({'response': response})
         
     except Exception as e:
-        log_error_with_context(logger, e, phone_number=phone_number if 'phone_number' in locals() else None)
+        logger.error(f"Error en webhook: {str(e)}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
 
 def _handle_text_message(phone_number: str, message: str) -> str:
@@ -110,7 +109,7 @@ def _handle_text_message(phone_number: str, message: str) -> str:
                 return default_handler.handle(phone_number, message, entities)
                 
     except Exception as e:
-        log_error_with_context(logger, e, phone_number=phone_number)
+        logger.error(f"Error procesando mensaje de texto: {str(e)}", exc_info=True)
         return "Disculpa, hubo un error procesando tu mensaje. ¿Podrías intentar nuevamente?"
 
 def _handle_image_message(phone_number: str, data: dict) -> str:
@@ -147,7 +146,7 @@ def _handle_image_message(phone_number: str, data: dict) -> str:
             return "No se pudo guardar la imagen. ¿Podrías intentar nuevamente?"
             
     except Exception as e:
-        log_error_with_context(logger, e, phone_number=phone_number)
+        logger.error(f"Error procesando imagen: {str(e)}", exc_info=True)
         return "Error procesando la imagen. ¿Podrías intentar nuevamente?"
 
 @webhook_bp.route('/webhook/status', methods=['POST'])

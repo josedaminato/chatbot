@@ -67,18 +67,15 @@ class NotificacionResponse(NotificacionBase):
     
     class Config:
         """Configuración del schema"""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": 1,
                 "phone_number": "+5491112345678",
-                "message": "Tu turno está confirmado para mañana a las 14:30",
+                "message": "Recordatorio de turno",
                 "notification_type": "whatsapp",
-                "priority": "normal",
                 "status": "enviada",
                 "created_at": "2024-01-10T10:00:00Z",
-                "sent_at": "2024-01-10T10:01:00Z",
-                "error_message": None,
-                "retry_count": 0
+                "sent_at": "2024-01-10T10:01:00Z"
             }
         }
 

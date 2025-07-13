@@ -159,6 +159,14 @@ def get_last_appointment_id_by_phone(phone_number: str) -> Optional[int]:
         logger.error(f"Error obteniendo ID del último turno: {str(e)}")
         return None
 
+def mark_appointment_absent(appointment_id: int) -> bool:
+    """Marca un turno como ausente"""
+    try:
+        return update_appointment(appointment_id, {"status": "ausente"})
+    except Exception as e:
+        logger.error(f"Error marcando turno como ausente: {str(e)}")
+        return False
+
 # ========================================
 # FUNCIONES DE NOTIFICACIONES
 # ========================================
@@ -314,6 +322,14 @@ def insert_attachment(attachment_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Error insertando adjunto: {str(e)}")
         return {}
 
+def get_settings() -> Dict[str, Any]:
+    """Obtiene configuraciones del sistema"""
+    return {
+        'clinic_name': 'Clínica Demo',
+        'professional_email': 'profesional@clinica.com',
+        'whatsapp_provider': 'twilio'
+    }
+
 # ========================================
 # FUNCIONES DE CONEXIÓN (para compatibilidad)
 # ========================================
@@ -329,3 +345,57 @@ def close_connection(connection):
 def test_connection() -> bool:
     """Prueba la conexión a la base de datos (simulado)"""
     return True
+
+def get_appointments_by_date_range(start_date: date, end_date: date) -> List[Dict[str, Any]]:
+    """Obtiene turnos en un rango de fechas"""
+    try:
+        appointments = []
+        for appointment in _appointments:
+            apt_date = appointment.get('appointment_date')
+            if apt_date and start_date <= apt_date <= end_date:
+                appointments.append(appointment)
+        return appointments
+    except Exception as e:
+        logger.error(f"Error obteniendo turnos por rango de fechas: {str(e)}")
+        return []
+
+def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
+    """Obtiene un usuario por nombre de usuario"""
+    # Implementación simplificada - retorna None
+    return None
+
+def create_user(user_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Crea un nuevo usuario"""
+    # Implementación simplificada
+    return {
+        'id': 1,
+        'username': user_data.get('username'),
+        'email': user_data.get('email'),
+        'full_name': user_data.get('full_name'),
+        'role': user_data.get('role', 'asistente'),
+        'status': 'activo'
+    }
+
+def get_all_users() -> List[Dict[str, Any]]:
+    """Obtiene todos los usuarios"""
+    # Implementación simplificada - retorna lista vacía
+    return []
+
+def get_notifications_stats() -> Dict[str, Any]:
+    """Obtiene estadísticas de notificaciones"""
+    # Implementación simplificada
+    return {
+        'total': 0,
+        'sent': 0,
+        'failed': 0,
+        'pending': 0
+    }
+
+def get_conversation_stats() -> Dict[str, Any]:
+    """Obtiene estadísticas de conversaciones"""
+    # Implementación simplificada
+    return {
+        'total_conversations': 0,
+        'active_conversations': 0,
+        'messages_today': 0
+    }

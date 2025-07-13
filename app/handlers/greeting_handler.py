@@ -1,18 +1,37 @@
-from twilio.twiml.messaging_response import MessagingResponse
-from app.utils.config import get_clinic_name_and_email
+"""
+Manejador de saludos y bienvenida
+"""
 
-def handle(phone_number, incoming_msg):
-    """Procesa un saludo inicial y responde con mensaje de bienvenida.
+from app.config import CLINIC_NAME
 
-    Args:
-        phone_number (str): Teléfono del paciente.
-        incoming_msg (str): Mensaje recibido.
+def get_clinic_name_and_email():
+    """Obtiene nombre de la clínica y email del profesional"""
+    return {
+        'clinic_name': CLINIC_NAME,
+        'professional_email': 'profesional@clinica.com'  # Valor por defecto
+    }
 
-    Returns:
-        MessagingResponse: Respuesta Twilio.
+def handle(phone_number: str, message: str, entities: dict) -> str:
     """
-    resp = MessagingResponse()
-    msg = resp.message()
-    clinic_name, _ = get_clinic_name_and_email()
-    msg.body(f"¡Hola! Soy el asistente virtual de {clinic_name}. ¿En qué puedo ayudarte?")
-    return resp 
+    Maneja saludos y mensajes de bienvenida
+    
+    Args:
+        phone_number: Número de teléfono
+        message: Mensaje del usuario
+        entities: Entidades extraídas
+        
+    Returns:
+        Respuesta de bienvenida
+    """
+    clinic_info = get_clinic_name_and_email()
+    
+    return (
+        f"¡Hola! 👋\n\n"
+        f"Bienvenido a {clinic_info['clinic_name']}.\n\n"
+        f"¿En qué puedo ayudarte?\n\n"
+        f"• 📅 Agendar un turno\n"
+        f"• ❌ Cancelar o reprogramar\n"
+        f"• ❓ Consultas generales\n"
+        f"• 📸 Enviar una imagen\n\n"
+        f"Escribe tu consulta y te ayudo 😊"
+    ) 

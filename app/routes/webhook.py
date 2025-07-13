@@ -1,4 +1,8 @@
-from flask import Blueprint, request
+"""
+Webhook para recibir mensajes de WhatsApp
+"""
+
+from flask import Blueprint, request, jsonify
 from twilio.twiml.messaging_response import MessagingResponse
 from app.utils.keywords import (
     SALUDOS, CANCEL_KEYWORDS, CONFIRM_KEYWORDS, URGENCY_KEYWORDS,
@@ -13,7 +17,7 @@ from app.services.calendar_service import get_google_calendar_service, is_slot_a
 from app.services.email_service import send_email_notification
 from app.services.whatsapp_service import send_whatsapp_message
 from app.services.image_handler import save_image_and_notify
-from app.utils.config import get_clinic_name_and_email, WHATSAPP_PROVIDER
+from app.config import CLINIC_NAME
 from app.utils.validators import is_valid_name, is_valid_phone, is_valid_date, is_valid_image
 import re
 from datetime import datetime, timedelta

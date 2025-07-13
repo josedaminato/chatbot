@@ -4,7 +4,7 @@ Validaciones y documentación de estructuras de datos
 """
 
 from pydantic import BaseModel, Field, field_validator, EmailStr
-from typing import Optional
+from typing import Optional, List
 from enum import Enum
 from datetime import datetime
 
@@ -97,7 +97,7 @@ class UsuarioResponse(UsuarioBase):
     
     class Config:
         """Configuración del schema"""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": 1,
                 "username": "dr.perez",
@@ -118,7 +118,7 @@ class UsuarioLogin(BaseModel):
 
 class UsuarioListResponse(BaseModel):
     """Schema para lista de usuarios"""
-    usuarios: list[UsuarioResponse] = Field(..., description="Lista de usuarios")
+    usuarios: List[UsuarioResponse] = Field(..., description="Lista de usuarios")
     total: int = Field(..., description="Total de usuarios")
     page: int = Field(..., description="Página actual")
     per_page: int = Field(..., description="Usuarios por página")
