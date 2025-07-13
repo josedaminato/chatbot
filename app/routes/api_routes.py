@@ -8,7 +8,6 @@ import logging
 from datetime import datetime, date
 from app.services import agenda_service, notification_service, ai_service
 from app.schemas import TurnoCreate, TurnoUpdate, NotificacionCreate
-from app.logging_config import log_error_with_context
 from app.utils.validators import is_valid_phone
 from app.config import CLINIC_NAME
 
@@ -29,7 +28,7 @@ def health_check():
             'timestamp': datetime.now().isoformat()
         })
     except Exception as e:
-        log_error_with_context(logger, e)
+        logger.error(f"Error en health check: {str(e)}", exc_info=True)
         return jsonify({
             'status': 'unhealthy',
             'error': str(e)
@@ -80,7 +79,7 @@ def get_appointments():
         })
         
     except Exception as e:
-        log_error_with_context(logger, e)
+        logger.error(f"Error al obtener turnos: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -137,7 +136,7 @@ def create_appointment():
             }), 400
             
     except Exception as e:
-        log_error_with_context(logger, e)
+        logger.error(f"Error al crear turno: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -158,7 +157,7 @@ def get_appointment(appointment_id):
         })
         
     except Exception as e:
-        log_error_with_context(logger, e)
+        logger.error(f"Error al obtener turno por ID: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -220,7 +219,7 @@ def update_appointment(appointment_id):
             }), 400
             
     except Exception as e:
-        log_error_with_context(logger, e)
+        logger.error(f"Error al actualizar turno por ID: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -247,7 +246,7 @@ def cancel_appointment(appointment_id):
             }), 400
             
     except Exception as e:
-        log_error_with_context(logger, e)
+        logger.error(f"Error al cancelar turno por ID: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -276,7 +275,7 @@ def get_available_slots():
         })
         
     except Exception as e:
-        log_error_with_context(logger, e)
+        logger.error(f"Error al obtener horarios disponibles: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -318,7 +317,7 @@ def send_notification():
             }), 400
             
     except Exception as e:
-        log_error_with_context(logger, e)
+        logger.error(f"Error al enviar notificación: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -346,7 +345,7 @@ def analyze_message(phone_number):
         })
         
     except Exception as e:
-        log_error_with_context(logger, e)
+        logger.error(f"Error al analizar mensaje con IA: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -369,7 +368,7 @@ def get_conversation_summary(phone_number):
         })
         
     except Exception as e:
-        log_error_with_context(logger, e)
+        logger.error(f"Error al obtener resumen de conversación: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -398,7 +397,7 @@ def clear_conversation(phone_number):
             }), 500
             
     except Exception as e:
-        log_error_with_context(logger, e)
+        logger.error(f"Error al limpiar contexto de conversación: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)

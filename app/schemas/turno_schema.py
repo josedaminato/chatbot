@@ -4,7 +4,7 @@ Validaciones y documentación de estructuras de datos
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from typing import Optional, List
 from datetime import date, time
 from enum import Enum
 
@@ -82,7 +82,7 @@ class TurnoResponse(TurnoBase):
 
 class TurnoListResponse(BaseModel):
     """Schema para lista de turnos"""
-    turnos: list[TurnoResponse] = Field(..., description="Lista de turnos")
+    turnos: List[TurnoResponse] = Field(..., description="Lista de turnos")
     total: int = Field(..., description="Total de turnos")
     page: int = Field(..., description="Página actual")
     per_page: int = Field(..., description="Turnos por página") 

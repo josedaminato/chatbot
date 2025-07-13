@@ -1,29 +1,37 @@
-from twilio.twiml.messaging_response import MessagingResponse
-from app.utils.validators import is_valid_image
-from app.services.image_handler import save_image_and_notify
-from app.utils.config import get_clinic_name_and_email
+"""
+Manejador de imágenes
+"""
 
-def handle(phone_number, incoming_msg, media_url, filename):
-    """Procesa la recepción de una imagen, valida y guarda el archivo.
+from app.config import CLINIC_NAME
 
-    Args:
-        phone_number (str): Teléfono del paciente.
-        incoming_msg (str): Mensaje recibido.
-        media_url (str): URL de la imagen recibida.
-        filename (str): Nombre del archivo recibido.
+def get_clinic_name_and_email():
+    """Obtiene nombre de la clínica y email del profesional"""
+    return {
+        'clinic_name': CLINIC_NAME,
+        'professional_email': 'profesional@clinica.com'  # Valor por defecto
+    }
 
-    Returns:
-        MessagingResponse: Respuesta Twilio.
+def handle(phone_number: str, message: str, entities: dict) -> str:
     """
-    resp = MessagingResponse()
-    msg = resp.message()
-    if not is_valid_image(filename):
-        msg.body("Solo se permiten imágenes JPG o PNG.")
-        return str(resp)
-    success = save_image_and_notify(phone_number, None, media_url)
-    clinic_name, _ = get_clinic_name_and_email()
-    if success:
-        msg.body(f"{clinic_name}: Imagen recibida correctamente. El profesional la revisará antes de tu consulta.")
-    else:
-        msg.body(f"{clinic_name}: Hubo un problema al procesar la imagen. Por favor, inténtalo de nuevo.")
-    return resp 
+    Maneja envío de imágenes
+    
+    Args:
+        phone_number: Número de teléfono
+        message: Mensaje del usuario
+        entities: Entidades extraídas
+        
+    Returns:
+        Respuesta sobre envío de imágenes
+    """
+    clinic_info = get_clinic_name_and_email()
+    
+    return (
+        f"📸 Envío de Imágenes - {clinic_info['clinic_name']}:\n\n"
+        f"Puedes enviar imágenes de:\n"
+        f"• 📋 Documentos médicos\n"
+        f"• 🦷 Radiografías\n"
+        f"• 📝 Recetas\n"
+        f"• 🏥 Resultados de análisis\n\n"
+        f"Simplemente adjunta la imagen en tu mensaje y la revisaremos.\n\n"
+        f"¿Qué tipo de imagen necesitas enviar?"
+    ) 

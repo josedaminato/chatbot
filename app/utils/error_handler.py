@@ -8,7 +8,6 @@ import traceback
 from functools import wraps
 from flask import jsonify, request, current_app
 from werkzeug.exceptions import HTTPException
-from app.logging_config import log_error_with_context
 
 logger = logging.getLogger('asistente_salud')
 
@@ -27,13 +26,16 @@ class ErrorHandler:
             Respuesta JSON con información del error
         """
         # Log del error con contexto
-        log_error_with_context(
-            logger, e,
-            user_id=getattr(request, 'user_id', None),
-            phone_number=getattr(request, 'phone_number', None),
-            endpoint=request.endpoint,
-            method=request.method,
-            url=request.url
+        logger.error(
+            f"Error en {request.endpoint}: {str(e)}",
+            extra={
+                'user_id': getattr(request, 'user_id', None),
+                'phone_number': getattr(request, 'phone_number', None),
+                'endpoint': request.endpoint,
+                'method': request.method,
+                'url': request.url
+            },
+            exc_info=True
         )
         
         # Determinar tipo de error
@@ -98,10 +100,10 @@ class ErrorHandler:
                 'type': error['type']
             })
         
-        log_error_with_context(
-            logger, e,
-            validation_errors=errors,
-            endpoint=request.endpoint
+        logger.error(
+            f"Error de validación en {request.endpoint}: {errors}",
+            extra={'validation_errors': errors, 'endpoint': request.endpoint},
+            exc_info=True
         )
         
         return jsonify({
@@ -122,10 +124,10 @@ class ErrorHandler:
         Returns:
             Respuesta JSON con información del error
         """
-        log_error_with_context(
-            logger, e,
-            error_type='database_error',
-            endpoint=request.endpoint
+        logger.error(
+            f"Error de base de datos en {request.endpoint}: {str(e)}",
+            extra={'error_type': 'database_error', 'endpoint': request.endpoint},
+            exc_info=True
         )
         
         # En producción, no exponer detalles de BD
@@ -151,10 +153,10 @@ class ErrorHandler:
         Returns:
             Respuesta JSON con información del error
         """
-        log_error_with_context(
-            logger, e,
-            error_type='external_api_error',
-            endpoint=request.endpoint
+        logger.error(
+            f"Error de API externa en {request.endpoint}: {str(e)}",
+            extra={'error_type': 'external_api_error', 'endpoint': request.endpoint},
+            exc_info=True
         )
         
         return jsonify({
@@ -248,36 +250,48 @@ def api_error_handler(f):
 # Funciones de utilidad para logging de errores específicos
 def log_webhook_error(error, phone_number=None, message=None):
     """Log específico para errores de webhook"""
-    log_error_with_context(
-        logger, error,
-        error_type='webhook_error',
-        phone_number=phone_number,
-        message_length=len(message) if message else 0
+    logger.error(
+        f"Error de webhook: {str(error)}",
+        extra={
+            'error_type': 'webhook_error',
+            'phone_number': phone_number,
+            'message_length': len(message) if message else 0
+        },
+        exc_info=True
     )
 
 def log_dashboard_error(error, user_id=None, action=None):
     """Log específico para errores del dashboard"""
-    log_error_with_context(
-        logger, error,
-        error_type='dashboard_error',
-        user_id=user_id,
-        action=action
+    logger.error(
+        f"Error del dashboard: {str(error)}",
+        extra={
+            'error_type': 'dashboard_error',
+            'user_id': user_id,
+            'action': action
+        },
+        exc_info=True
     )
 
 def log_api_error(error, endpoint=None, method=None):
     """Log específico para errores de API"""
-    log_error_with_context(
-        logger, error,
-        error_type='api_error',
-        endpoint=endpoint,
-        method=method
+    logger.error(
+        f"Error de API: {str(error)}",
+        extra={
+            'error_type': 'api_error',
+            'endpoint': endpoint,
+            'method': method
+        },
+        exc_info=True
     )
 
 def log_service_error(error, service_name=None, operation=None):
     """Log específico para errores de servicios"""
-    log_error_with_context(
-        logger, error,
-        error_type='service_error',
-        service_name=service_name,
-        operation=operation
+    logger.error(
+        f"Error de servicio: {str(error)}",
+        extra={
+            'error_type': 'service_error',
+            'service_name': service_name,
+            'operation': operation
+        },
+        exc_info=True
     ) 

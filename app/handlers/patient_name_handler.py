@@ -1,20 +1,39 @@
-from twilio.twiml.messaging_response import MessagingResponse
-from app.utils.validators import is_valid_name
+"""
+Manejador de nombres de pacientes
+"""
 
-def handle(phone_number, incoming_msg):
-    """Procesa el nombre del paciente, valida y responde.
-
-    Args:
-        phone_number (str): Teléfono del paciente.
-        incoming_msg (str): Nombre ingresado por el usuario.
-
-    Returns:
-        MessagingResponse: Respuesta Twilio.
+def is_valid_name(name: str) -> bool:
     """
-    resp = MessagingResponse()
-    msg = resp.message()
-    if not is_valid_name(incoming_msg):
-        msg.body("El nombre ingresado no es válido. Por favor, ingresa solo letras y espacios.")
-        return resp
-    msg.body("¡Turno reservado exitosamente! Te esperamos.")
-    return resp 
+    Valida si un nombre es válido
+    
+    Args:
+        name: Nombre a validar
+        
+    Returns:
+        True si es válido, False si no
+    """
+    if not name or len(name.strip()) < 2:
+        return False
+    return True
+
+def handle(phone_number: str, message: str, entities: dict) -> str:
+    """
+    Maneja nombres de pacientes
+    
+    Args:
+        phone_number: Número de teléfono
+        message: Mensaje del usuario
+        entities: Entidades extraídas
+        
+    Returns:
+        Respuesta sobre el nombre
+    """
+    name = entities.get('nombre', '').strip()
+    
+    if not name:
+        return "Por favor, dime tu nombre completo para continuar con el agendamiento."
+    
+    if not is_valid_name(name):
+        return "El nombre debe tener al menos 2 caracteres. ¿Podrías escribirlo nuevamente?"
+    
+    return f"Perfecto {name}! Ahora dime qué fecha te gustaría para tu turno." 

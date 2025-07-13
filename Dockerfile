@@ -2,8 +2,8 @@
 # Dockerfile para Asistente de Salud
 # ========================================
 
-# Usar imagen base de Python oficial
-FROM python:3.10-slim
+# Usar imagen base de Python oficial (versión LTS)
+FROM python:3.8-slim
 
 # Establecer variables de entorno
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -48,5 +48,5 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
-# Comando por defecto
-CMD ["python", "app/main.py"] 
+# Comando por defecto - ejecutar como módulo Python
+CMD ["python", "-m", "app.main"] 

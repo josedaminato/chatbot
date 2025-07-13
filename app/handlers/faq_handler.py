@@ -1,26 +1,40 @@
-from twilio.twiml.messaging_response import MessagingResponse
-from app.utils.config import get_clinic_name_and_email
+"""
+Manejador de preguntas frecuentes
+"""
 
-def handle(tipo, phone_number, incoming_msg):
-    """Responde preguntas frecuentes según el tipo solicitado.
+from app.config import CLINIC_NAME
 
-    Args:
-        tipo (str): Tipo de pregunta ('obra_social', 'costo', 'ubicacion', 'gratis').
-        phone_number (str): Teléfono del paciente.
-        incoming_msg (str): Mensaje recibido.
+def get_clinic_name_and_email():
+    """Obtiene nombre de la clínica y email del profesional"""
+    return {
+        'clinic_name': CLINIC_NAME,
+        'professional_email': 'profesional@clinica.com'  # Valor por defecto
+    }
 
-    Returns:
-        MessagingResponse: Respuesta Twilio.
+def handle(phone_number: str, message: str, entities: dict) -> str:
     """
-    resp = MessagingResponse()
-    msg = resp.message()
-    clinic_name, _ = get_clinic_name_and_email()
-    if tipo == 'obra_social':
-        msg.body(f"{clinic_name}: Sí, trabajamos con las siguientes obras sociales: [Lista de obras sociales]. ¿Te gustaría agendar un turno?")
-    elif tipo == 'costo':
-        msg.body(f"{clinic_name}: El costo de la consulta es de $XXXX. ¿Deseas agendar un turno?")
-    elif tipo == 'ubicacion':
-        msg.body(f"{clinic_name}: Estamos ubicados en [Dirección de la clínica]. ¿Te gustaría agendar un turno?")
-    elif tipo == 'gratis':
-        msg.body(f"{clinic_name}: Las consultas no son gratuitas. Si deseas saber el costo o agendar un turno, avísame.")
-    return resp 
+    Maneja preguntas frecuentes
+    
+    Args:
+        phone_number: Número de teléfono
+        message: Mensaje del usuario
+        entities: Entidades extraídas
+        
+    Returns:
+        Respuesta con información frecuente
+    """
+    clinic_info = get_clinic_name_and_email()
+    
+    return (
+        f"📋 Información de {clinic_info['clinic_name']}:\n\n"
+        f"🕐 Horarios de atención:\n"
+        f"   Lunes a Viernes: 9:00 - 18:00\n"
+        f"   Sábados: 9:00 - 13:00\n\n"
+        f"📍 Ubicación: [Dirección de la clínica]\n\n"
+        f"📞 Teléfono: [Número de contacto]\n\n"
+        f"💳 Formas de pago:\n"
+        f"   • Efectivo\n"
+        f"   • Tarjeta de crédito/débito\n"
+        f"   • Transferencia bancaria\n\n"
+        f"¿Necesitas agendar un turno o tienes otra consulta?"
+    ) 
