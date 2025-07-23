@@ -25,7 +25,7 @@ TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 # Base de datos
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///asistente_salud.db')
+DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://asistente_user:tu_password_segura@localhost/asistente_salud')
 
 # Otros tokens/servicios
 WHATSAPP_API_TOKEN = os.getenv('WHATSAPP_API_TOKEN')

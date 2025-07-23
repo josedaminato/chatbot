@@ -43,6 +43,25 @@ python -m app.main
 
 ---
 
+## 🚀 Alta de un nuevo cliente (solo para el implementador)
+
+1. Pedile al cliente SOLO estos datos:
+   - Nombre de la clínica
+   - Email del profesional (para notificaciones)
+   - Número de WhatsApp (formato internacional, ej: whatsapp:+549XXXXXXXXX)
+
+2. Ejecutá el script de configuración rápida:
+
+```bash
+python setup_cliente.py
+```
+
+Esto generará un archivo `.env` con los datos mínimos. Luego completá vos el resto de las variables técnicas (Twilio, OpenAI, base de datos, etc.) antes de levantar el servicio.
+
+3. Levantá el servicio normalmente (Docker o manual).
+
+---
+
 ## ⚙️ Variables de entorno necesarias (`.env`)
 
 - `SECRET_KEY`: Clave secreta Flask
