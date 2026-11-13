@@ -1,3 +1,4 @@
+import importlib
 from datetime import date, time
 from unittest.mock import patch
 
@@ -5,6 +6,8 @@ import pytest
 
 from app.schemas.turno_schema import EstadoTurno, TurnoCreate
 from app.services.agenda_service import AgendaService
+
+agenda_service_module = importlib.import_module("app.services.agenda_service")
 
 
 @pytest.fixture
@@ -24,10 +27,8 @@ def turno_data():
     )
 
 
-@patch("app.services.agenda_service.create_appointment", return_value=1)
-@patch(
-    "app.services.agenda_service.AgendaService._check_availability", return_value=True
-)
+@patch.object(agenda_service_module, "create_appointment", return_value=1)
+@patch.object(AgendaService, "_check_availability", return_value=True)
 def test_create_appointment_success(
     mock_check, mock_create, agenda_service, turno_data
 ):
@@ -36,14 +37,15 @@ def test_create_appointment_success(
     assert "appointment_id" in result
 
 
-@patch("app.services.agenda_service.get_appointment", return_value=None)
+@patch.object(agenda_service_module, "get_appointment", return_value=None)
 def test_get_appointment_not_found(mock_get, agenda_service):
     result = agenda_service.get_appointment(999)
     assert result is None
 
 
-@patch(
-    "app.services.agenda_service.get_appointment",
+@patch.object(
+    agenda_service_module,
+    "get_appointment",
     return_value={
         "id": 1,
         "phone_number": "TEST_VALUE",

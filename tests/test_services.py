@@ -3,12 +3,15 @@ Tests para los servicios principales
 Validación de funcionalidad básica
 """
 
+import importlib
 import unittest
 from datetime import date, time, timedelta
 from unittest.mock import MagicMock, patch
 
 from app.schemas import EstadoTurno, TurnoCreate
 from app.services import agenda_service, ai_service, notification_service
+
+agenda_service_module = importlib.import_module("app.services.agenda_service")
 
 
 class TestAgendaService(unittest.TestCase):
@@ -18,7 +21,7 @@ class TestAgendaService(unittest.TestCase):
         """Configuración inicial para cada test"""
         self.agenda_service = agenda_service
 
-    @patch("app.services.agenda_service.get_appointments_by_date")
+    @patch.object(agenda_service_module, "get_appointments_by_date")
     def test_get_available_slots(self, mock_get_appointments):
         """Test para obtener horarios disponibles"""
         # Mock de turnos existentes
@@ -36,7 +39,7 @@ class TestAgendaService(unittest.TestCase):
         self.assertIn("10:00", available_slots)
         self.assertIn("15:00", available_slots)
 
-    @patch("app.services.agenda_service.create_appointment")
+    @patch.object(agenda_service_module, "create_appointment")
     def test_create_appointment_success(self, mock_create):
         """Test para crear turno exitosamente"""
         # Mock de creación exitosa
@@ -58,7 +61,7 @@ class TestAgendaService(unittest.TestCase):
         self.assertIn("Turno confirmado", result["message"])
         self.assertEqual(result["appointment_id"], 1)
 
-    @patch("app.services.agenda_service.get_appointment")
+    @patch.object(agenda_service_module, "get_appointment")
     def test_get_appointment_not_found(self, mock_get):
         """Test para obtener turno inexistente"""
         # Mock de turno no encontrado
@@ -78,7 +81,7 @@ class TestNotificationService(unittest.TestCase):
         """Configuración inicial para cada test"""
         self.notification_service = notification_service
 
-    @patch("app.services.notification_service.notification_service._send_via_twilio")
+    @patch.object(notification_service, "_send_via_twilio")
     def test_send_whatsapp_success(self, mock_send):
         """Test para envío exitoso de WhatsApp"""
         # Mock de envío exitoso
@@ -93,7 +96,7 @@ class TestNotificationService(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertEqual(result["message_id"], "test_123")
 
-    @patch("app.services.notification_service.notification_service._send_via_twilio")
+    @patch.object(notification_service, "_send_via_twilio")
     def test_send_whatsapp_failure(self, mock_send):
         """Test para envío fallido de WhatsApp"""
         # Mock de envío fallido
@@ -135,7 +138,7 @@ class TestAIService(unittest.TestCase):
         """Configuración inicial para cada test"""
         self.ai_service = ai_service
 
-    @patch("app.services.ai_service.AIService._call_openai")
+    @patch.object(ai_service, "_call_openai")
     def test_analyze_message(self, mock_call):
         """Test para análisis de mensaje"""
         # Mock de respuesta de OpenAI
@@ -159,7 +162,7 @@ class TestAIService(unittest.TestCase):
         self.assertEqual(result["confidence"], 0.95)
         self.assertEqual(result["response_type"], "greeting")
 
-    @patch("app.services.ai_service.AIService._call_openai")
+    @patch.object(ai_service, "_call_openai")
     def test_generate_response(self, mock_call):
         """Test para generación de respuesta"""
         # Mock de respuesta de OpenAI
