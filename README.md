@@ -1,153 +1,52 @@
-# 🤖 Asistente de Salud
+# Healthcare Assistant
 
-¡Bienvenido al proyecto **Asistente de Salud**! Un chatbot inteligente para la gestión de turnos médicos, recordatorios y atención automatizada vía WhatsApp y panel web.
+A Python application that helps clinics manage appointments and routine patient communication through a web dashboard and WhatsApp.
 
----
+## Product areas
 
-## 📋 Descripción
+- Schedule and cancel appointments
+- Send reminders and follow-up messages
+- Manage clinic appointments and basic statistics from a web dashboard
+- Connect WhatsApp messaging through Twilio
+- Use OpenAI for conversational assistance
 
-Este proyecto implementa un asistente virtual para clínicas y consultorios, permitiendo:
-- Agendamiento y cancelación de turnos
-- Recordatorios automáticos y mensajes de seguimiento
-- Panel administrativo para gestión de pacientes y estadísticas
-- Integración con WhatsApp (Twilio) y OpenAI para IA conversacional
+## Technology
 
----
+- **Backend:** Python and Flask
+- **Messaging:** Twilio WhatsApp integration
+- **Conversational assistant:** OpenAI API
+- **Local development:** Docker Compose
+- **Tests:** pytest
 
-## 🚀 Instalación
+## Run locally
 
-### Opción 1: Usando Docker 🐳
+Requirements: Docker and Python.
 
 ```bash
-git clone https://github.com/tu-usuario/asistente_salud.git
-cd asistente_salud
+git clone https://github.com/josedaminato/chatbot.git
+cd chatbot
 cp .env.example .env
-# Edita .env con tus claves
-
-docker-compose up --build
 ```
 
-### Opción 2: Manual (sin Docker)
+Add your own local credentials to `.env`, then start the application:
 
 ```bash
-git clone https://github.com/tu-usuario/asistente_salud.git
-cd asistente_salud
-python -m venv venv
-source venv/bin/activate  # o venv\Scripts\activate en Windows
-pip install -r requirements.txt
-cp .env.example .env
-# Edita .env con tus claves
+docker compose up --build
+```
 
+Alternatively, install the dependencies and run the app directly:
+
+```bash
+python -m venv venv
+pip install -r requirements.txt
 python -m app.main
 ```
 
----
-
-## 🚀 Alta de un nuevo cliente (solo para el implementador)
-
-1. Pedile al cliente SOLO estos datos:
-   - Nombre de la clínica
-   - Email del profesional (para notificaciones)
-   - Número de WhatsApp (formato internacional, ej: whatsapp:+549XXXXXXXXX)
-
-2. Ejecutá el script de configuración rápida:
-
-```bash
-python setup_cliente.py
-```
-
-Esto generará un archivo `.env` con los datos mínimos. Luego completá vos el resto de las variables técnicas (Twilio, OpenAI, base de datos, etc.) antes de levantar el servicio.
-
-3. Levantá el servicio normalmente (Docker o manual).
-
----
-
-## ⚙️ Variables de entorno necesarias (`.env`)
-
-- `SECRET_KEY`: Clave secreta Flask
-- `DEBUG`: Modo debug (True/False)
-- `HOST`, `PORT`: Host y puerto
-- `CLINIC_NAME`: Nombre de la clínica
-- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`: Credenciales de Twilio
-- `OPENAI_API_KEY`: Clave de OpenAI
-- `DATABASE_URL`: URL de la base de datos
-- `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD`: (Opcional) Configuración de email
-
-Ver `.env.example` para todos los campos.
-
----
-
-## 🧪 Cómo correr los tests
+Run the test suite with:
 
 ```bash
 pytest tests/
 ```
 
-Incluye tests unitarios para servicios y rutas principales.
+The repository includes an environment template with placeholders. Keep real API keys and account credentials in your local `.env` file; that file is ignored by Git.
 
----
-
-## 🗺️ Diagrama de flujo del chatbot
-
-```mermaid
-graph TD;
-    Usuario-->|WhatsApp|Webhook
-    Webhook-->|Valida y procesa|AI[AI Service]
-    AI-->|Intención|Handlers
-    Handlers-->|Agenda|AgendaService
-    Handlers-->|Notificaciones|NotificationService
-    Handlers-->|Respuestas|Usuario
-    Dashboard-->|Administra|AgendaService
-```
-
----
-
-## 📁 Estructura del proyecto
-
-```
-app/
-  config.py
-  main.py
-  logging_config.py
-  routes/
-    api_routes.py
-    dashboard_routes.py
-    webhook_routes.py
-  schemas/
-    turno_schema.py
-    mensaje_entrada_schema.py
-  services/
-    agenda_service.py
-    scheduler.py
-    whatsapp_service.py
-    ...
-  utils/
-    validators.py
-    time_utils.py
-    message_utils.py
-    keywords.py
-    ...
-
-/tests/
-  test_agenda_service.py
-  test_webhook_routes.py
-  ...
-
-requirements.txt
-Dockerfile
-docker-compose.yml
-.env.example
-README.md
-```
-
----
-
-## ✨ Contribuciones
-
-¡Pull requests y sugerencias son bienvenidas! 
-
----
-
-## 📝 Licencia
-
-MIT 
