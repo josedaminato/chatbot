@@ -135,7 +135,7 @@ class TestAIService(unittest.TestCase):
         """Configuración inicial para cada test"""
         self.ai_service = ai_service
 
-    @patch("app.services.ai_service.ai_service._call_openai")
+    @patch("app.services.ai_service.AIService._call_openai")
     def test_analyze_message(self, mock_call):
         """Test para análisis de mensaje"""
         # Mock de respuesta de OpenAI
@@ -159,7 +159,7 @@ class TestAIService(unittest.TestCase):
         self.assertEqual(result["confidence"], 0.95)
         self.assertEqual(result["response_type"], "greeting")
 
-    @patch("app.services.ai_service.ai_service._call_openai")
+    @patch("app.services.ai_service.AIService._call_openai")
     def test_generate_response(self, mock_call):
         """Test para generación de respuesta"""
         # Mock de respuesta de OpenAI
