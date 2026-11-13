@@ -1,27 +1,24 @@
-# Entornos virtuales
+# Virtual environments
 venv/
 ENV/
 env/
 .venv/
 
-# Archivos de Python compilados
+# Compiled Python files
 __pycache__/
 *.pyc
 
-# Archivos de configuración y variables de entorno
+# Local environment files and secrets
 .env
+.env.*
+!.env.example
+!.env.*.example
 *.env
 
-# Archivos de bases de datos locales (si usas SQLite)
+# Local databases and logs
 *.db
-
-# Archivos de logs
 *.log
 
-
-# Archivos de sistema
+# Operating system files
 .DS_Store
 Thumbs.db
-
-
-
