@@ -78,7 +78,7 @@ class TestNotificationService(unittest.TestCase):
         """Configuración inicial para cada test"""
         self.notification_service = notification_service
 
-    @patch("app.services.notification_service._send_via_twilio")
+    @patch("app.services.notification_service.notification_service._send_via_twilio")
     def test_send_whatsapp_success(self, mock_send):
         """Test para envío exitoso de WhatsApp"""
         # Mock de envío exitoso
@@ -93,7 +93,7 @@ class TestNotificationService(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertEqual(result["message_id"], "test_123")
 
-    @patch("app.services.notification_service._send_via_twilio")
+    @patch("app.services.notification_service.notification_service._send_via_twilio")
     def test_send_whatsapp_failure(self, mock_send):
         """Test para envío fallido de WhatsApp"""
         # Mock de envío fallido
@@ -135,7 +135,7 @@ class TestAIService(unittest.TestCase):
         """Configuración inicial para cada test"""
         self.ai_service = ai_service
 
-    @patch("app.services.ai_service._call_openai")
+    @patch("app.services.ai_service.ai_service._call_openai")
     def test_analyze_message(self, mock_call):
         """Test para análisis de mensaje"""
         # Mock de respuesta de OpenAI
@@ -159,7 +159,7 @@ class TestAIService(unittest.TestCase):
         self.assertEqual(result["confidence"], 0.95)
         self.assertEqual(result["response_type"], "greeting")
 
-    @patch("app.services.ai_service._call_openai")
+    @patch("app.services.ai_service.ai_service._call_openai")
     def test_generate_response(self, mock_call):
         """Test para generación de respuesta"""
         # Mock de respuesta de OpenAI
@@ -205,7 +205,7 @@ class TestSchemas(unittest.TestCase):
         """Test para validación de teléfono inválido"""
         with self.assertRaises(ValueError):
             TurnoCreate(
-                phone_number="TEST_PHONE_001",  # Teléfono muy corto
+                phone_number="",  # Teléfono muy corto
                 appointment_date=date.today(),
                 appointment_time=time(14, 30),
             )

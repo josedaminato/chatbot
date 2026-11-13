@@ -1,6 +1,5 @@
 from twilio.twiml.messaging_response import MessagingResponse
 
-
 def handle(phone_number, incoming_msg):
     """Procesa la respuesta de fecha y solicita horario al paciente.
 
@@ -14,4 +13,4 @@ def handle(phone_number, incoming_msg):
     resp = MessagingResponse()
     msg = resp.message()
     msg.body("¿Qué horario prefieres?")
-    return resp
+    return resp 

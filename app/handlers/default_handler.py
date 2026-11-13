@@ -1,6 +1,5 @@
 from twilio.twiml.messaging_response import MessagingResponse
 
-
 def handle(phone_number, incoming_msg):
     """Responde cuando el mensaje del usuario no es comprendido.
 
@@ -14,4 +13,4 @@ def handle(phone_number, incoming_msg):
     resp = MessagingResponse()
     msg = resp.message()
     msg.body("No entendí tu mensaje. ¿Podrías reformularlo?")
-    return resp
+    return resp 

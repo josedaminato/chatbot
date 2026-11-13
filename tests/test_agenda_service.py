@@ -50,11 +50,11 @@ def test_get_appointment_not_found(mock_get, agenda_service):
         "patient_name": "TEST_VALUE",
         "appointment_date": date.today(),
         "appointment_time": time(14, 30),
-        "urgency_level": "TEST_VALUE",
-        "notes": "TEST_VALUE",
+        "urgency_level": "normal",
+        "notes": None,
         "status": EstadoTurno.PENDIENTE,
-        "created_at": "TEST_VALUE",
-        "updated_at": "TEST_VALUE",
+        "created_at": None,
+        "updated_at": None,
     },
 )
 def test_get_appointment_found(mock_get, agenda_service):
